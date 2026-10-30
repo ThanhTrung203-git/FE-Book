@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { BookOpen, ShieldCheck, TriangleAlert } from "lucide-react";
+import { LanguageToggle, useLanguage } from "./i18n.jsx";
 
 export function AuthPage({ onLogin, onRegister, onBack }) {
+  const { t } = useLanguage();
   const [mode, setMode] = useState("login");
   const [role, setRole] = useState("customer");
   const [form, setForm] = useState({ full_name: "", email: "", password: "" });
@@ -27,7 +29,7 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
         setMessage("Đăng ký thành công. Bạn có thể đăng nhập.");
       } else await onLogin(form.email.trim(), form.password, role);
     } catch (err) {
-      setError(err.message);
+      setError(t(err.message));
     } finally {
       setBusy(false);
     }
@@ -42,28 +44,28 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
           mộc<span>.</span>
         </b>
         <div>
-          <small>✦　KHÔNG GIAN CỦA NHỮNG CÂU CHUYỆN</small>
+          <small>✦　{t("KHÔNG GIAN CỦA NHỮNG CÂU CHUYỆN")}</small>
           <h1>
-            Mỗi cuốn sách
+            {t("Mỗi cuốn sách")}
             <br />
-            mở ra một <em>thế giới.</em>
+            {t("mở ra một ")}<em>{t("thế giới.")}</em>
           </h1>
-          <p>Chăm chút từng trang sách, kết nối những tâm hồn yêu đọc.</p>
+          <p>{t("Chăm chút từng trang sách, kết nối những tâm hồn yêu đọc.")}</p>
         </div>
-        <small>Đọc chậm. Sống sâu.　·　EST. 2024</small>
+        <small>{t("Đọc chậm. Sống sâu. · EST. 2024")}</small>
       </section>
       <section className="loginbox">
-        <small>●　HỆ THỐNG NHÀ SÁCH MỘC</small>
+        <small className="auth-system-label">●　{t("HỆ THỐNG NHÀ SÁCH MỘC")} <LanguageToggle /></small>
         <div className="loginform">
           <i className="lock">
             <ShieldCheck />
           </i>
           <small className="purple">
             {mode === "register"
-              ? "TẠO TÀI KHOẢN KHÁCH HÀNG"
-              : "CHÀO MỪNG TRỞ LẠI"}
+              ? t("TẠO TÀI KHOẢN KHÁCH HÀNG")
+              : t("CHÀO MỪNG TRỞ LẠI")}
           </small>
-          <h2>{mode === "register" ? "Đăng ký" : "Đăng nhập"}</h2>
+          <h2>{mode === "register" ? t("Đăng ký") : t("Đăng nhập")}</h2>
           {mode === "login" && (
             <div className="auth-switch">
               <button
@@ -71,40 +73,40 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
                 className={role === "customer" ? "chosen" : ""}
                 onClick={() => setRole("customer")}
               >
-                Khách hàng
+                {t("Khách hàng")}
               </button>
               <button
                 type="button"
                 className={role === "admin" ? "chosen" : ""}
                 onClick={() => setRole("admin")}
               >
-                Quản trị viên
+                {t("Quản trị viên")}
               </button>
             </div>
           )}
           <p>
             {mode === "register"
-              ? "Tạo tài khoản để quản lý thông tin thành viên."
+              ? t("Tạo tài khoản để quản lý thông tin thành viên.")
               : role === "admin"
-                ? "Đăng nhập bằng tài khoản quản trị viên."
-                : "Đăng nhập để cập nhật hồ sơ của bạn."}
+                ? t("Đăng nhập bằng tài khoản quản trị viên.")
+                : t("Đăng nhập để cập nhật hồ sơ của bạn.")}
           </p>
           <form onSubmit={submit}>
             {mode === "register" && (
               <>
-                <label htmlFor="register-name">Họ và tên</label>
+                <label htmlFor="register-name">{t("Họ và tên")}</label>
                 <input
                   id="register-name"
                   autoComplete="name"
                   maxLength="255"
-                  placeholder="Nguyễn Văn An"
+                  placeholder={t("Nguyễn Văn An")}
                   value={form.full_name}
                   onChange={(e) => set("full_name", e.target.value)}
                   required
                 />
               </>
             )}
-            <label htmlFor="auth-email">Địa chỉ email</label>
+            <label htmlFor="auth-email">{t("Địa chỉ email")}</label>
             <input
               id="auth-email"
               type="email"
@@ -114,7 +116,7 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
               onChange={(e) => set("email", e.target.value)}
               required
             />
-            <label htmlFor="auth-password">Mật khẩu</label>
+            <label htmlFor="auth-password">{t("Mật khẩu")}</label>
             <input
               id="auth-password"
               type="password"
@@ -124,7 +126,7 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
                 mode === "register" ? "new-password" : "current-password"
               }
               placeholder={
-                mode === "register" ? "Tối thiểu 8 ký tự" : "Nhập mật khẩu"
+                mode === "register" ? t("Tối thiểu 8 ký tự") : t("Nhập mật khẩu")
               }
               value={form.password}
               onChange={(e) => set("password", e.target.value)}
@@ -133,16 +135,16 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
             {error && (
               <p className="error">
                 <TriangleAlert size={15} />
-                {error}
+                {t(error)}
               </p>
             )}
-            {message && <p className="notice">{message}</p>}
+            {message && <p className="notice">{t(message)}</p>}
             <button className="primary wide" disabled={busy}>
               {busy
-                ? "Đang xử lý…"
+                ? t("Đang xử lý…")
                 : mode === "register"
-                  ? "Tạo tài khoản"
-                  : "Đăng nhập"}
+                  ? t("Tạo tài khoản")
+                  : t("Đăng nhập")}
               　→
             </button>
           </form>
@@ -155,8 +157,7 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
                   setError("");
                   setMessage("");
                 }}
-              >
-                Chưa có tài khoản? <b>Đăng ký</b>
+              > {t("Chưa có tài khoản?")} <b>{t("Đăng ký")}</b>
               </button>
             )}
             {(mode === "register" || role === "admin") && (
@@ -168,19 +169,14 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
                   setError("");
                   setMessage("");
                 }}
-              >
-                Quay lại đăng nhập
-              </button>
+              > {t("Quay lại đăng nhập")} </button>
             )}
             {onBack && (
-              <button type="button" onClick={onBack}>
-                Về cửa hàng
-              </button>
+              <button type="button" onClick={onBack}> {t("Về cửa hàng")} </button>
             )}
           </div>
           <p className="secure">
-            <ShieldCheck size={15} /> Thông tin tài khoản được bảo vệ an toàn
-          </p>
+            <ShieldCheck size={15} /> {t("Thông tin tài khoản được bảo vệ an toàn")} </p>
         </div>
         <small>© 2025 Mộc Bookstore</small>
       </section>

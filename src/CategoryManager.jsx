@@ -1,3 +1,4 @@
+import { useLanguage } from "./i18n.jsx";
 import { useCallback, useEffect, useState } from "react";
 import {
   Boxes,
@@ -25,7 +26,7 @@ async function request(path, token, method = "GET", payload) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const error = new Error(
-      data.message || "Kh\u00F4ng th\u1EC3 x\u1EED l\u00FD th\u1EC3 lo\u1EA1i.",
+      data.message || "Không thể xử lý thể loại.",
     );
     error.status = response.status;
     throw error;
@@ -34,6 +35,7 @@ async function request(path, token, method = "GET", payload) {
 }
 
 export default function CategoryManager({ token, onClose, onChange, notify }) {
+  const { t, categoryLabel } = useLanguage();
   const [categories, setCategories] = useState([]);
   const [name, setName] = useState("");
   const [editingId, setEditingId] = useState(null);
@@ -76,19 +78,19 @@ export default function CategoryManager({ token, onClose, onChange, notify }) {
       setEditingId(null);
       setMessage(
         editingId
-          ? "\u0110\u00E3 c\u1EADp nh\u1EADt th\u1EC3 lo\u1EA1i."
-          : "\u0110\u00E3 th\u00EAm th\u1EC3 lo\u1EA1i.",
+          ? "Đã cập nhật thể loại."
+          : "Đã thêm thể loại.",
       );
       notify?.(
         editingId
-          ? "\u0110\u00E3 c\u1EADp nh\u1EADt th\u1EC3 lo\u1EA1i."
-          : "\u0110\u00E3 th\u00EAm th\u1EC3 lo\u1EA1i.",
+          ? "Đã cập nhật thể loại."
+          : "Đã thêm thể loại.",
       );
       await load();
     } catch (requestError) {
       setError(
         requestError.status === 409
-          ? "Kh\u00F4ng th\u1EC3 th\u1EF1c hi\u1EC7n v\u00EC t\u00EAn th\u1EC3 lo\u1EA1i b\u1ECB tr\u00F9ng."
+          ? "Không thể thực hiện vì tên thể loại bị trùng."
           : requestError.message,
       );
     } finally {
@@ -104,7 +106,7 @@ export default function CategoryManager({ token, onClose, onChange, notify }) {
   }
 
   async function remove(category) {
-    if (!window.confirm('X\u00F3a th\u1EC3 lo\u1EA1i "' + category.name + '"?'))
+    if (!window.confirm(t("Xóa thể loại {name}?", { name: categoryLabel(category.name) })))
       return;
     setError("");
     setMessage("");
@@ -115,13 +117,13 @@ export default function CategoryManager({ token, onClose, onChange, notify }) {
         setEditingId(null);
         setName("");
       }
-      setMessage("\u0110\u00E3 x\u00F3a th\u1EC3 lo\u1EA1i.");
-      notify?.("\u0110\u00E3 x\u00F3a th\u1EC3 lo\u1EA1i.");
+      setMessage("Đã xóa thể loại.");
+      notify?.("Đã xóa thể loại.");
       await load();
     } catch (requestError) {
       setError(
         requestError.status === 409
-          ? "Th\u1EC3 lo\u1EA1i \u0111ang c\u00F3 s\u00E1ch s\u1EED d\u1EE5ng, kh\u00F4ng th\u1EC3 x\u00F3a."
+          ? "Thể loại đang có sách sử dụng, không thể xóa."
           : requestError.message,
       );
     } finally {
@@ -144,7 +146,7 @@ export default function CategoryManager({ token, onClose, onChange, notify }) {
           className="modal-close"
           type="button"
           onClick={onClose}
-          aria-label={"\u0110\u00F3ng"}
+          aria-label={t("Đóng")}
         >
           <X size={16} />
         </button>
@@ -154,14 +156,14 @@ export default function CategoryManager({ token, onClose, onChange, notify }) {
           </div>
           <div>
             <small className="purple">
-              {"QU\u1EA2N L\u00DD DANH M\u1EE4C"}
+              {t("QUẢN LÝ DANH MỤC")}
             </small>
             <h1 id="category-manager-title">
-              {"Th\u1EC3 lo\u1EA1i s\u00E1ch"}
+              {t("Thể loại sách")}
             </h1>
             <p>
               {
-                "Th\u00EAm, \u0111\u1ED5i t\u00EAn ho\u1EB7c x\u00F3a th\u1EC3 lo\u1EA1i."
+                t("Thêm, đổi tên hoặc xóa thể loại.")
               }
             </p>
           </div>
@@ -169,7 +171,7 @@ export default function CategoryManager({ token, onClose, onChange, notify }) {
 
         <form className="category-form" onSubmit={save}>
           <label className="profile-field" htmlFor="category-name">
-            {"T\u00EAn th\u1EC3 lo\u1EA1i"}
+            {t("Tên thể loại")}
           </label>
           <div className="category-input-row">
             <input
@@ -178,11 +180,11 @@ export default function CategoryManager({ token, onClose, onChange, notify }) {
               required
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder={"V\u00ED d\u1EE5: V\u0103n h\u1ECDc"}
+              placeholder={t("Ví dụ: Văn học")}
             />
             <button className="primary" disabled={busy || !name.trim()}>
               <Plus size={15} />
-              {editingId ? "L\u01B0u t\u00EAn" : "Th\u00EAm m\u1EDBi"}
+              {editingId ? t("Lưu tên") : t("Thêm mới")}
             </button>
             {editingId && (
               <button
@@ -194,35 +196,35 @@ export default function CategoryManager({ token, onClose, onChange, notify }) {
                   setName("");
                 }}
               >
-                {"H\u1EE7y"}
+                {t("Hủy")}
               </button>
             )}
           </div>
         </form>
 
-        {message && <p className="notice">{message}</p>}
-        {error && <p className="notice notice-error">{error}</p>}
+        {message && <p className="notice">{t(message)}</p>}
+        {error && <p className="notice notice-error">{t(error)}</p>}
         <div className="category-list">
           {loading ? (
             <p className="empty">
               <LoaderCircle size={15} className="spin" />{" "}
-              {"\u0110ang t\u1EA3i danh m\u1EE5c..."}
+              {t("Đang tải danh mục...")}
             </p>
           ) : categories.length === 0 ? (
-            <p className="empty">{"Ch\u01B0a c\u00F3 th\u1EC3 lo\u1EA1i."}</p>
+            <p className="empty">{t("Chưa có thể loại.")}</p>
           ) : (
             categories.map((category) => (
               <div className="category-row" key={category.id}>
                 <span>
-                  <b>{category.name}</b>
+                  <b>{categoryLabel(category.name)}</b>
                   <small>ID: {category.id}</small>
                 </span>
                 <div>
                   <button
                     className="icon"
                     type="button"
-                    title={"S\u1EEDa"}
-                    aria-label={"S\u1EEDa"}
+                    title={"Sửa"}
+                    aria-label={"Sửa"}
                     disabled={busy}
                     onClick={() => beginEdit(category)}
                   >
@@ -231,8 +233,8 @@ export default function CategoryManager({ token, onClose, onChange, notify }) {
                   <button
                     className="icon danger"
                     type="button"
-                    title={"X\u00F3a"}
-                    aria-label={"X\u00F3a"}
+                    title={"Xóa"}
+                    aria-label={"Xóa"}
                     disabled={busy}
                     onClick={() => remove(category)}
                   >
@@ -245,10 +247,10 @@ export default function CategoryManager({ token, onClose, onChange, notify }) {
         </div>
         <footer className="category-footer">
           <span>
-            {categories.length} {"th\u1EC3 lo\u1EA1i"}
+            {categories.length} {t("thể loại")}
           </span>
           <button type="button" className="secondary" onClick={onClose}>
-            <Check size={15} /> {"Ho\u00E0n t\u1EA5t"}
+            <Check size={15} /> {t("Hoàn tất")}
           </button>
         </footer>
       </section>

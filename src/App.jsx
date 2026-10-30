@@ -3,248 +3,86 @@ import {
   BookOpen,
   Boxes,
   Check,
-  ChevronDown,
-  LayoutDashboard,
   LoaderCircle,
   LogOut,
   Menu,
-  Pencil,
   Plus,
+  PackagePlus,
+  Pencil,
+  Eye,
+  EyeOff,
   Search,
   ShieldCheck,
-  Trash2,
-  TriangleAlert,
   X,
   ArrowLeft,
   ArrowRight,
+  ClipboardList,
+  Users,
+  Building2,
 } from "lucide-react";
 import { CustomerProfile, AdminProfileEditor } from "./ProfileForms.jsx";
 import { AuthPage } from "./AuthPage.jsx";
 import CategoryManager from "./CategoryManager.jsx";
 import Storefront from "./Storefront.jsx";
-const API = (
-    import.meta.env.VITE_API_URL || "http://localhost:3000/api"
-  ).replace(/\/$/, ""),
-  KEY = "book-admin-token",
-  EMPTY = {
-    category_id: "",
-    title: "",
-    price: "",
-    weight_grams: "",
-    description: "",
-    cover_url: "",
-    stock_quantity: 0,
-    publisher: "",
-    publication_year: "",
-    is_active: true,
-  };
-async function api(path, o = {}) {
-  let r = await fetch(API + path, {
-    method: o.method || "GET",
-    headers: {
-      ...(o.body ? { "Content-Type": "application/json" } : {}),
-      ...(o.token ? { Authorization: "Bearer " + o.token } : {}),
-    },
-    body: o.body,
-  });
-  if (r.status === 204) return null;
-  let d = await r.json().catch(() => ({}));
-  if (!r.ok) {
-    let e = Error(d.message || "Yêu cầu thất bại");
-    e.status = r.status;
-    throw e;
-  }
-  return d;
-}
-const money = (n) =>
-  new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(Number(n || 0));
-function Login({ login }) {
-  let [email, E] = useState(""),
-    [password, P] = useState(""),
-    [busy, B] = useState(false),
-    [error, X] = useState("");
-  async function go(e) {
-    e.preventDefault();
-    B(true);
-    X("");
+import { AdminOrders, CustomerOrders } from "./OrderFeatures.jsx";
+import { ACCESS_KEY, REFRESH_KEY, api } from "./api.js";
+import { LanguageToggle, useLanguage } from "./i18n.jsx";
+import StatusDropdown from "./StatusDropdown.jsx";
+import Editor from "./BookEditor.jsx";
+import CatalogManager from "./CatalogManager.jsx";
+const KEY = ACCESS_KEY;
+function StockEditor({ book, close, addStock, busy }) {
+  const { t } = useLanguage();
+  const [quantity, setQuantity] = useState("");
+  const [error, setError] = useState("");
+  async function submit(event) {
+    event.preventDefault();
+    setError("");
     try {
-      await login(email.trim(), password);
-    } catch (x) {
-      X(x.message);
-    } finally {
-      B(false);
-    }
-  }
-  return (
-    <main className="login">
-      <section className="art">
-        <b className="brand">
-          <i>
-            <BookOpen />
-          </i>{" "}
-          mộc<span>.</span>
-        </b>
-        <div>
-          <small>✦　KHÔNG GIAN CỦA NHỮNG CÂU CHUYỆN</small>
-          <h1>
-            Mỗi cuốn sách
-            <br />
-            mở ra một <em>thế giới.</em>
-          </h1>
-          <p>Chăm chút từng trang sách, kết nối những tâm hồn yêu đọc.</p>
-        </div>
-        <small>Đọc chậm. Sống sâu.　·　EST. 2024</small>
-      </section>
-      <section className="loginbox">
-        <small>●　HỆ THỐNG QUẢN TRỊ</small>
-        <div className="loginform">
-          <i className="lock">
-            <ShieldCheck />
-          </i>
-          <small className="purple">CHÀO MỪNG TRỞ LẠI</small>
-          <h2>Đăng nhập</h2>
-          <p>Đăng nhập bằng tài khoản quản trị viên của bạn.</p>
-          <form onSubmit={go}>
-            <label>Email</label>
-            <input
-              type="email"
-              autoComplete="username"
-              placeholder="admin@bookstore.local"
-              value={email}
-              onChange={(e) => E(e.target.value)}
-              required
-            />
-            <label>Mật khẩu</label>
-            <input
-              type="password"
-              autoComplete="current-password"
-              placeholder="Mật khẩu"
-              value={password}
-              onChange={(e) => P(e.target.value)}
-              required
-            />
-            {error && (
-              <p className="error">
-                <TriangleAlert size={15} />
-                {error}
-              </p>
-            )}
-            <button className="primary wide" disabled={busy}>
-              {busy ? "Đang xác thực…" : "Đăng nhập hệ thống　→"}
-            </button>
-          </form>
-          <p className="secure">
-            <ShieldCheck size={15} /> Phiên đăng nhập được bảo vệ an toàn
-          </p>
-        </div>
-        <small>© 2025 Mộc Bookstore</small>
-      </section>
-    </main>
-  );
-}
-function Editor({ book, cats, close, save, busy }) {
-  let [f, S] = useState(
-      book
-        ? { ...EMPTY, ...book, is_active: Boolean(book.is_active) }
-        : { ...EMPTY },
-    ),
-    [err, E] = useState("");
-  const field = (key, label, type = "text", req = false) => (
-    <label className="field">
-      {label}
-      {req ? " *" : ""}
-      <input
-        type={type}
-        value={f[key] ?? ""}
-        required={req}
-        onChange={(e) => S({ ...f, [key]: e.target.value })}
-      />
-    </label>
-  );
-  async function submit(e) {
-    e.preventDefault();
-    let d = {
-      category_id: Number(f.category_id),
-      title: f.title.trim(),
-      price: Number(f.price),
-      weight_grams: Number(f.weight_grams),
-      stock_quantity: Number(f.stock_quantity || 0),
-      is_active: f.is_active,
-      description: f.description || null,
-      cover_url: f.cover_url || null,
-      publisher: f.publisher || null,
-      publication_year: f.publication_year ? Number(f.publication_year) : null,
-    };
-    try {
-      await save(d);
-    } catch (x) {
-      E(x.message);
+      await addStock(Number(quantity));
+    } catch (requestError) {
+      setError(t(requestError.message));
     }
   }
   return (
     <div
       className="shade"
-      onMouseDown={(e) => e.target === e.currentTarget && close()}
+      onMouseDown={(event) => event.target === event.currentTarget && close()}
     >
-      <section className="dialog">
+      <section className="dialog stock-dialog">
         <header>
-          <h2>{book ? "Chỉnh sửa sách" : "Thêm sách mới"}</h2>
-          <button className="icon" onClick={close}>
+          <div>
+            <small className="purple">{t("CẬP NHẬT KHO")}</small>
+            <h2>{t("Thêm số lượng sách")}</h2>
+          </div>
+          <button className="icon" onClick={close} aria-label={t("Đóng")}>
             <X />
           </button>
         </header>
+        <p className="stock-book-title">{book.title}</p>
+        <p className="stock-current">
+          {t("Số lượng hiện tại:")} <b>{book.stock_quantity ?? 0}</b>
+        </p>
         <form onSubmit={submit}>
-          <div className="fields">
-            {field("title", "Tên sách", "text", true)}
-            <label className="field">
-              Thể loại *
-              <select
-                required
-                value={f.category_id}
-                onChange={(e) => S({ ...f, category_id: e.target.value })}
-              >
-                <option value="">Chọn thể loại</option>
-                {cats.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {field("price", "Giá bán (₫)", "number", true)}
-            {field("weight_grams", "Khối lượng (gram)", "number", true)}
-            {field("stock_quantity", "Tồn kho", "number")}
-            {field("publisher", "Nhà xuất bản")}
-            {field("publication_year", "Năm xuất bản", "number")}
-            {field("cover_url", "Ảnh bìa URL", "url")}
-            <label className="field full">
-              Mô tả
-              <textarea
-                rows="3"
-                value={f.description || ""}
-                onChange={(e) => S({ ...f, description: e.target.value })}
-              />
-            </label>
-          </div>
-          <label className="toggle">
-            Đang kinh doanh{" "}
+          <label className="field">
+            {t("Số lượng cần thêm *")}
             <input
-              type="checkbox"
-              checked={f.is_active}
-              onChange={(e) => S({ ...f, is_active: e.target.checked })}
+              type="number"
+              min="1"
+              step="1"
+              required
+              value={quantity}
+              onChange={(event) => setQuantity(event.target.value)}
+              placeholder={t("Nhập số lượng")}
             />
           </label>
-          {err && <p className="error">{err}</p>}
+          {error && <p className="error">{t(error)}</p>}
           <footer>
             <button type="button" className="secondary" onClick={close}>
-              Huỷ
+              {t("Hủy")}
             </button>
             <button className="primary" disabled={busy}>
-              {busy ? "Đang lưu…" : book ? "Lưu thay đổi" : "Thêm sách"}
+              {busy ? t("Đang cập nhật…") : t("Cộng số lượng")}
             </button>
           </footer>
         </form>
@@ -253,6 +91,7 @@ function Editor({ book, cats, close, save, busy }) {
   );
 }
 export default function App() {
+  const { t, money, categoryLabel } = useLanguage();
   let [token, T] = useState(() => localStorage.getItem(KEY) || ""),
     [user, U] = useState(null),
     [checking, C] = useState(Boolean(localStorage.getItem(KEY))),
@@ -265,17 +104,31 @@ export default function App() {
     [cat, F] = useState(""),
     [loading, L] = useState(false),
     [dialog, D] = useState(null),
+    [stockDialog, setStockDialog] = useState(null),
     [busy, V] = useState(false),
     [toast, Z] = useState(""),
     [mobile, H] = useState(false),
     [profileOpen, ProfileOpen] = useState(false),
     [categoryOpen, CategoryOpen] = useState(false),
+    [catalogManager, setCatalogManager] = useState(null),
     [showAuth, setShowAuth] = useState(false),
-    [showStore, setShowStore] = useState(false);
+    [showStore, setShowStore] = useState(false),
+    [accountView, setAccountView] = useState("profile"),
+    [adminOrdersOpen, setAdminOrdersOpen] = useState(false);
   const logout = useCallback(() => {
+      const refreshToken = localStorage.getItem(REFRESH_KEY);
+      if (refreshToken)
+        api("/auth/logout", {
+          method: "POST",
+          skipAuth: true,
+          skipRefresh: true,
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        }).catch(() => {});
       localStorage.removeItem(KEY);
+      localStorage.removeItem(REFRESH_KEY);
       T("");
       U(null);
+      setCatalogManager(null);
       B([]);
     }, []),
     notify = (m) => {
@@ -287,17 +140,32 @@ export default function App() {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
-    if (!d.data?.token) throw Error("No login token was returned.");
+    const accessToken = d.data?.access_token || d.data?.token;
+    if (!accessToken || !d.data?.refresh_token)
+      throw Error("BE không trả về đủ token đăng nhập.");
     if (d.data.user?.role !== role)
       throw Error(
         role === "customer"
-          ? "This account is not a customer."
-          : "This account does not have admin access.",
+          ? "Tài khoản này không phải tài khoản khách hàng."
+          : "Tài khoản này không có quyền quản trị.",
       );
-    localStorage.setItem(KEY, d.data.token);
-    T(d.data.token);
+    localStorage.setItem(KEY, accessToken);
+    localStorage.setItem(REFRESH_KEY, d.data.refresh_token);
+    T(accessToken);
     U(d.data.user);
+    if (d.data.user?.role === "customer") {
+      setAccountView("profile");
+      setShowStore(true);
+    } else {
+      setShowStore(false);
+    }
   }
+  useEffect(() => {
+    const handleExpired = () => logout();
+    window.addEventListener("book:session-expired", handleExpired);
+    return () =>
+      window.removeEventListener("book:session-expired", handleExpired);
+  }, [logout]);
   useEffect(() => {
     if (!token) {
       C(false);
@@ -309,6 +177,8 @@ export default function App() {
         if (!live) return;
         if (!["admin", "customer"].includes(d.data?.role)) throw Error();
         U(d.data);
+        T(localStorage.getItem(KEY) || token);
+        if (d.data.role === "customer") setShowStore(true);
       })
       .catch(() => live && logout())
       .finally(() => live && C(false));
@@ -344,38 +214,83 @@ export default function App() {
   async function save(d) {
     V(true);
     try {
-      if (dialog.book)
-        await api("/admin/books/" + dialog.book.id, {
-          method: "PATCH",
+      const editing = Boolean(dialog?.book);
+      const result = await api(
+        editing ? `/admin/books/${dialog.book.id}` : "/admin/books",
+        {
+          method: editing ? "PATCH" : "POST",
           token,
           body: JSON.stringify(d),
-        });
-      else
-        await api("/admin/books", {
-          method: "POST",
-          token,
-          body: JSON.stringify(d),
-        });
+        },
+      );
       D(null);
-      notify(dialog.book ? "Đã cập nhật sách." : "Đã thêm sách mới.");
+      if (result.action === "stock_added") {
+        notify({
+          key: Number(result.data?.is_active)
+            ? "Sách đã tồn tại. Đã cộng {quantity} cuốn vào sách hiện có."
+            : "Sách đã tồn tại. Đã cộng {quantity} cuốn. Sách vẫn đang ẩn.",
+          params: { quantity: result.quantity_added },
+        });
+      } else
+        notify(editing ? "Đã cập nhật thông tin sách." : "Đã thêm sách mới.");
       await load();
     } finally {
       V(false);
     }
   }
-  async function remove(b) {
-    if (!confirm("Bạn có chắc muốn xoá “" + b.title + "”?")) return;
+  async function openEditor(book) {
+    V(true);
     try {
-      await api("/admin/books/" + b.id, { method: "DELETE", token });
-      notify("Đã xoá sách.");
-      if (books.length === 1 && page > 1) P(page - 1);
-      else await load();
-    } catch (e) {
+      const result = await api(`/admin/books/${book.id}`, { token });
+      D({ book: result.data });
+    } catch (error) {
+      notify(error.message);
+    } finally {
+      V(false);
+    }
+  }
+  async function addStockQuantity(quantity) {
+    if (!stockDialog) return;
+    V(true);
+    try {
+      await api(`/admin/books/${stockDialog.id}/stock`, {
+        method: "PATCH",
+        token,
+        body: JSON.stringify({ quantity }),
+      });
+      setStockDialog(null);
+      notify(t("Đã cộng số lượng sách."));
+      await load();
+    } finally {
+      V(false);
+    }
+  }
+  async function changeVisibility(book, isActive) {
+    if (Boolean(book.is_active) === isActive) return;
+    if (
+      !isActive &&
+      !confirm(
+        `${t("Ẩn sách")} “${book.title}”? ${t("Ẩn sách sẽ khiến sản phẩm biến mất khỏi cửa hàng. Nếu khách đã thêm vào giỏ, sách sẽ được đánh dấu không khả dụng và cần xóa trước khi đặt hàng.")}`,
+      )
+    )
+      return;
+    V(true);
+    try {
+      await api(`/admin/books/${book.id}`, {
+        method: "PATCH",
+        token,
+        body: JSON.stringify({ is_active: isActive }),
+      });
       notify(
-        e.status === 409
-          ? "Sách đang được tham chiếu. Hãy tắt “Đang kinh doanh” để ngừng bán."
-          : e.message,
+        isActive
+          ? t("Đã hiện sách trên cửa hàng.")
+          : t("Đã ẩn sách khỏi cửa hàng."),
       );
+      await load();
+    } catch (error) {
+      notify(t(error.message));
+    } finally {
+      V(false);
     }
   }
   async function register(data) {
@@ -384,7 +299,7 @@ export default function App() {
   if (checking)
     return (
       <div className="checking">
-        <LoaderCircle className="spin" /> {"Đang kiểm tra phiên..."}
+        <LoaderCircle className="spin" /> {t("Đang kiểm tra phiên...")}
       </div>
     );
   if (!token || !user)
@@ -395,7 +310,7 @@ export default function App() {
           onRegister={register}
           onBack={() => setShowAuth(false)}
         />
-        {toast && <div className="toast">{toast}</div>}
+        {toast && <div className="toast">{t(toast)}</div>}
       </>
     ) : (
       <Storefront onLogin={() => setShowAuth(true)} />
@@ -404,7 +319,17 @@ export default function App() {
     return (
       <Storefront
         accountLabel="Tài khoản của tôi"
+        token={token}
+        user={user}
         onLogin={() => setShowStore(false)}
+        onViewOrders={() => {
+          setShowStore(false);
+          setAccountView("orders");
+        }}
+        onOrderCreated={() => {
+          setShowStore(false);
+          setAccountView("orders");
+        }}
       />
     );
   if (user.role === "customer")
@@ -419,18 +344,34 @@ export default function App() {
           </b>
           <span className="customer-top-actions">
             <button className="secondary" onClick={() => setShowStore(true)}>
-              {"Về cửa hàng"}
+              {t("Về cửa hàng")}
             </button>
-            {user.full_name} · {"Khách hàng"}
+            <button
+              className="secondary"
+              onClick={() => setAccountView("orders")}
+            >
+              {t("Đơn hàng")}
+            </button>
+            <button
+              className="secondary"
+              onClick={() => setAccountView("profile")}
+            >
+              {t("Hồ sơ")}
+            </button>
+            <LanguageToggle /> {user.full_name} · {t("Khách hàng")}
           </span>
         </header>
         <div className="account-content">
-          <CustomerProfile
-            token={token}
-            user={user}
-            logout={logout}
-            notify={notify}
-          />
+          {accountView === "orders" ? (
+            <CustomerOrders token={token} />
+          ) : (
+            <CustomerProfile
+              token={token}
+              user={user}
+              logout={logout}
+              notify={notify}
+            />
+          )}
         </div>
       </main>
     );
@@ -444,43 +385,72 @@ export default function App() {
           </i>{" "}
           mộc<span>.</span>
         </b>
-        <div className="workspace">
-          <b>M</b> Mộc Bookstore <ChevronDown />
-        </div>
-        <small className="navtitle">KHÔNG GIAN LÀM VIỆC</small>
-        <nav>
-          <a>
-            <LayoutDashboard />
-            Tổng quan
-          </a>
-          <a className="selected">
+        <nav aria-label={t("Điều hướng quản trị")}>
+          <button
+            type="button"
+            className="selected"
+            aria-current="page"
+            onClick={() => H(false)}
+          >
             <BookOpen />
-            Sản phẩm <b>{meta.total}</b>
-          </a>
-          <a
+            {t("Sản phẩm")}
+            <b>{meta.total}</b>
+          </button>
+          <button
+            type="button"
             onClick={() => {
               CategoryOpen(true);
               H(false);
             }}
           >
             <Boxes />
-            Thể loại
-          </a>
-          <a
+            {t("Thể loại")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setCatalogManager("author");
+              H(false);
+            }}
+          >
+            <Users />
+            {t("Tác giả")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setCatalogManager("publisher");
+              H(false);
+            }}
+          >
+            <Building2 />
+            {t("Nhà xuất bản")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAdminOrdersOpen(true);
+              H(false);
+            }}
+          >
+            <ClipboardList />
+            {t("Đơn hàng")}
+          </button>
+          <button
+            type="button"
             onClick={() => {
               ProfileOpen(true);
               H(false);
             }}
           >
             <ShieldCheck />
-            H&#x1ED3; s&#x1A1; kh&#xE1;ch h&#xE0;ng
-          </a>
+            {t("Hồ sơ khách hàng")}
+          </button>
         </nav>
         <div className="bottom">
-          <p>Cần hỗ trợ quản lý cửa hàng?</p>
           <button className="user" onClick={logout}>
             <LogOut />
-            {user.full_name || "Quản trị viên"} · Đăng xuất
+            {user.full_name || t("Quản trị viên")} {t("· Đăng xuất")}{" "}
           </button>
         </div>
       </aside>
@@ -491,7 +461,7 @@ export default function App() {
               className="modal-close"
               type="button"
               onClick={() => ProfileOpen(false)}
-              aria-label="&#x110;&#xF3;ng"
+              aria-label={t("Đóng")}
             >
               <X size={16} />
             </button>
@@ -507,49 +477,74 @@ export default function App() {
           notify={notify}
         />
       )}
+      {adminOrdersOpen && (
+        <AdminOrders
+          token={token}
+          onClose={() => setAdminOrdersOpen(false)}
+          notify={notify}
+        />
+      )}
+      {catalogManager && (
+        <CatalogManager
+          key={catalogManager}
+          kind={catalogManager}
+          token={token}
+          close={() => setCatalogManager(null)}
+          notify={notify}
+        />
+      )}
       {mobile && <button className="scrim" onClick={() => H(false)} />}
       <main className="main">
         <header className="topbar">
           <button className="mobile icon" onClick={() => H(true)}>
             <Menu />
           </button>
-          Cửa hàng　/　<b>Sản phẩm</b>
-          <span>{user.full_name}</span>
+          {t("Cửa hàng")}　/　<b>{t("Sản phẩm")}</b>
+          <span className="admin-top-actions">
+            <LanguageToggle />
+            {user.full_name}
+          </span>
         </header>
         <div className="content">
           <div className="welcome">
             <div>
-              <small className="purple">●　TRUNG TÂM ĐIỀU HÀNH</small>
-              <h1>Quản lý sản phẩm</h1>
-              <p>Theo dõi danh mục sách của cửa hàng.</p>
+              <small className="purple">●　{t("TRUNG TÂM ĐIỀU HÀNH")}</small>
+              <h1>{t("Quản lý sản phẩm")}</h1>
+              <p>{t("Theo dõi danh mục sách của cửa hàng.")}</p>
             </div>
-            <button className="primary" onClick={() => D({ book: null })}>
+            <button
+              className="primary"
+              disabled={busy}
+              onClick={() => D({ book: null })}
+            >
               <Plus />
-              Thêm sản phẩm
+              {t("Thêm sản phẩm")}
             </button>
           </div>
           <section className="stats">
             <article>
               <BookOpen />
-              <small>Tổng đầu sách</small>
+              <small>{t("Tổng đầu sách")}</small>
               <b>{meta.total}</b>
             </article>
             <article>
               <Check />
-              <small>Đang kinh doanh</small>
+              <small>{t("Đang kinh doanh")}</small>
               <b>{books.filter((b) => b.is_active).length}</b>
             </article>
             <article>
               <Boxes />
-              <small>Thể loại</small>
+              <small>{t("Thể loại")}</small>
               <b>{cats.length}</b>
             </article>
           </section>
           <section className="products">
             <header>
               <div>
-                <h2>Danh sách sản phẩm</h2>
-                <p>{meta.total} đầu sách trong cửa hàng.</p>
+                <h2>{t("Danh sách sản phẩm")}</h2>
+                <p>
+                  {meta.total} {t("đầu sách trong cửa hàng.")}
+                </p>
               </div>
             </header>
             <div className="toolbar">
@@ -562,11 +557,11 @@ export default function App() {
               >
                 <Search />
                 <input
-                  placeholder="Tìm theo tên sách…"
+                  placeholder={t("Tìm theo tên sách…")}
                   value={q}
                   onChange={(e) => Q(e.target.value)}
                 />
-                <button>Tìm kiếm</button>
+                <button>{t("Tìm kiếm")}</button>
               </form>
               <select
                 value={cat}
@@ -575,10 +570,10 @@ export default function App() {
                   P(1);
                 }}
               >
-                <option value="">Tất cả thể loại</option>
+                <option value="">{t("Tất cả thể loại")}</option>
                 {cats.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {categoryLabel(c.name)}
                   </option>
                 ))}
               </select>
@@ -587,26 +582,26 @@ export default function App() {
               <table>
                 <thead>
                   <tr>
-                    <th>SẢN PHẨM</th>
-                    <th>MÃ SÁCH</th>
-                    <th>THỂ LOẠI</th>
-                    <th>GIÁ BÁN</th>
-                    <th>TỒN KHO</th>
-                    <th>TRẠNG THÁI</th>
-                    <th>THAO TÁC</th>
+                    <th>{t("SẢN PHẨM")}</th>
+                    <th>{t("MÃ SÁCH")}</th>
+                    <th>{t("THỂ LOẠI")}</th>
+                    <th>{t("GIÁ BÁN")}</th>
+                    <th>{t("SỐ LƯỢNG")}</th>
+                    <th>{t("TRẠNG THÁI")}</th>
+                    <th>{t("THAO TÁC")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
                       <td colSpan="7" className="empty">
-                        Đang tải…
+                        {t("Đang tải…")}
                       </td>
                     </tr>
                   ) : books.length === 0 ? (
                     <tr>
                       <td colSpan="7" className="empty">
-                        Chưa tìm thấy sách.
+                        {t("Chưa tìm thấy sách.")}
                       </td>
                     </tr>
                   ) : (
@@ -624,39 +619,71 @@ export default function App() {
                             <span>
                               <b>{b.title}</b>
                               <small>
-                                {b.publisher || "Chưa cập nhật NXB"}
+                                {b.authors || t("Chưa cập nhật tác giả")}
+                              </small>
+                              <small>
+                                {b.publisher || t("Chưa cập nhật NXB")}
                               </small>
                             </span>
                           </div>
                         </td>
                         <td>BK-{String(b.id).padStart(4, "0")}</td>
-                        <td>{b.category_name || "—"}</td>
+                        <td>{categoryLabel(b.category_name) || "—"}</td>
                         <td>
                           <b>{money(b.price)}</b>
                         </td>
                         <td>{b.stock_quantity ?? 0}</td>
                         <td>
-                          <label
-                            className={b.is_active ? "active" : "inactive"}
-                          >
-                            ● {b.is_active ? "Đang bán" : "Đã ẩn"}
-                          </label>
+                          <StatusDropdown
+                            value={Number(b.is_active) ? "visible" : "hidden"}
+                            disabled={busy}
+                            label={t("Trạng thái hiển thị: {title}", {
+                              title: b.title,
+                            })}
+                            onChange={(value) =>
+                              changeVisibility(b, value === "visible")
+                            }
+                            options={[
+                              {
+                                value: "visible",
+                                label: t("Đang hiển thị"),
+                                description: t("Khách có thể xem và đặt sách"),
+                                icon: Eye,
+                                tone: "green",
+                              },
+                              {
+                                value: "hidden",
+                                label: t("Đã ẩn"),
+                                description: t(
+                                  "Tạm ngừng nhận đơn cho sách này",
+                                ),
+                                icon: EyeOff,
+                                tone: "gray",
+                              },
+                            ]}
+                          />
                         </td>
                         <td>
-                          <button
-                            className="icon"
-                            onClick={() => D({ book: b })}
-                            title="Sửa"
-                          >
-                            <Pencil />
-                          </button>
-                          <button
-                            className="icon danger"
-                            onClick={() => remove(b)}
-                            title="Xoá"
-                          >
-                            <Trash2 />
-                          </button>
+                          <div className="book-actions">
+                            <button
+                              className="icon"
+                              disabled={busy}
+                              onClick={() => openEditor(b)}
+                              title={t("Chỉnh sửa sách")}
+                              aria-label={`${t("Chỉnh sửa sách")} ${b.title}`}
+                            >
+                              <Pencil />
+                            </button>
+                            <button
+                              className="icon"
+                              disabled={busy}
+                              onClick={() => setStockDialog(b)}
+                              title={t("Thêm số lượng")}
+                              aria-label={`${t("Thêm số lượng")} ${b.title}`}
+                            >
+                              <PackagePlus />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -666,7 +693,8 @@ export default function App() {
             </div>
             <footer className="tablefoot">
               <span>
-                Hiển thị {meta.total ? (page - 1) * meta.limit + 1 : 0}–
+                {" "}
+                {t("Hiển thị")} {meta.total ? (page - 1) * meta.limit + 1 : 0}–
                 {Math.min(page * meta.limit, meta.total)} / {meta.total}
               </span>
               <div>
@@ -677,7 +705,8 @@ export default function App() {
                 >
                   <ArrowLeft />
                 </button>{" "}
-                Trang {page}/{pages}{" "}
+                {t("Trang ")}
+                {page}/{pages}{" "}
                 <button
                   className="icon"
                   disabled={page >= pages || loading}
@@ -689,23 +718,33 @@ export default function App() {
             </footer>
           </section>
           <footer className="pagefoot">
-            © 2025 Mộc Bookstore <span>Quản lý bằng sự tận tâm ✳</span>
+            © 2025 Mộc Bookstore <span>{t("Quản lý bằng sự tận tâm ✳")}</span>
           </footer>
         </div>
       </main>
       {dialog && (
         <Editor
+          key={dialog.book?.id || "new"}
           book={dialog.book}
+          token={token}
           cats={cats}
           close={() => D(null)}
           save={save}
           busy={busy}
         />
       )}
+      {stockDialog && (
+        <StockEditor
+          book={stockDialog}
+          close={() => setStockDialog(null)}
+          addStock={addStockQuantity}
+          busy={busy}
+        />
+      )}
       {toast && (
         <div className="toast">
           <Check />
-          {toast}
+          {t(toast)}
           <button className="icon" onClick={() => Z("")}>
             <X />
           </button>

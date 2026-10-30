@@ -1,3 +1,4 @@
+import { useLanguage } from "./i18n.jsx";
 import { useEffect, useState } from "react";
 import { LogOut, ShieldCheck, UserRound, LoaderCircle } from "lucide-react";
 
@@ -43,29 +44,31 @@ function fromProfile(profile, admin = false, fallbackName = "") {
 }
 
 function Field({ label, children, className = "" }) {
+  const { t } = useLanguage();
   return (
     <label className={"profile-field " + className}>
-      {label}
+      {t(label)}
       {children}
     </label>
   );
 }
 
 function PersonalFields({ value, setValue, admin = false }) {
+  const { t } = useLanguage();
   const set = (key, nextValue) =>
     setValue((current) => ({ ...current, [key]: nextValue }));
   return (
     <>
-      <Field label={"H\u1ECD v\u00E0 t\u00EAn"}>
+      <Field label={t("Họ và tên")}>
         <input
           maxLength="255"
           value={value.full_name}
           onChange={(event) => set("full_name", event.target.value)}
           required
-          placeholder={"V\u00ED d\u1EE5: Nguy\u1EC5n V\u0103n An"}
+          placeholder={t("Ví dụ: Nguyễn Văn An")}
         />
       </Field>
-      <Field label={"S\u1ED1 \u0111i\u1EC7n tho\u1EA1i"}>
+      <Field label={t("Số điện thoại")}>
         <input
           type="tel"
           maxLength="20"
@@ -74,20 +77,20 @@ function PersonalFields({ value, setValue, admin = false }) {
           placeholder="09xx xxx xxx"
         />
       </Field>
-      <Field label={"Gi\u1EDBi t\u00EDnh"}>
+      <Field label={t("Giới tính")}>
         <select
           value={value.gender}
           onChange={(event) => set("gender", event.target.value)}
         >
           <option value="undisclosed">
-            {"Kh\u00F4ng mu\u1ED1n ti\u1EBFt l\u1ED9"}
+            {t("Không muốn tiết lộ")}
           </option>
-          <option value="female">{"N\u1EEF"}</option>
-          <option value="male">Nam</option>
-          <option value="other">{"Kh\u00E1c"}</option>
+          <option value="female">{t("Nữ")}</option>
+          <option value="male">{t("Nam")}</option>
+          <option value="other">{t("Khác")}</option>
         </select>
       </Field>
-      <Field label={"Ng\u00E0y sinh"}>
+      <Field label={t("Ngày sinh")}>
         <input
           type="date"
           value={value.date_of_birth}
@@ -95,7 +98,7 @@ function PersonalFields({ value, setValue, admin = false }) {
         />
       </Field>
       <Field
-        label={"\u0110\u1ECBa ch\u1EC9 giao h\u00E0ng"}
+        label={t("Địa chỉ giao hàng")}
         className="profile-field-wide"
       >
         <textarea
@@ -104,13 +107,13 @@ function PersonalFields({ value, setValue, admin = false }) {
           value={value.shipping_address}
           onChange={(event) => set("shipping_address", event.target.value)}
           placeholder={
-            "S\u1ED1 nh\u00E0, \u0111\u01B0\u1EDDng, ph\u01B0\u1EDDng/x\u00E3, qu\u1EADn/huy\u1EC7n, t\u1EC9nh/th\u00E0nh ph\u1ED1"
+            t("Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố")
           }
         />
       </Field>
       {admin && (
         <>
-          <Field label={"\u0110i\u1EC3m th\u00E0nh vi\u00EAn"}>
+          <Field label={t("Điểm thành viên")}>
             <input
               type="number"
               min="0"
@@ -120,15 +123,15 @@ function PersonalFields({ value, setValue, admin = false }) {
               required
             />
           </Field>
-          <Field label={"H\u1EA1ng th\u00E0nh vi\u00EAn"}>
+          <Field label={t("Hạng thành viên")}>
             <select
               value={value.membership_tier}
               onChange={(event) => set("membership_tier", event.target.value)}
             >
-              <option value="bronze">{"\u0110\u1ED3ng"}</option>
-              <option value="silver">{"B\u1EA1c"}</option>
-              <option value="gold">{"V\u00E0ng"}</option>
-              <option value="platinum">{"B\u1EA1ch kim"}</option>
+              <option value="bronze">{t("Đồng")}</option>
+              <option value="silver">{t("Bạc")}</option>
+              <option value="gold">{t("Vàng")}</option>
+              <option value="platinum">{t("Bạch kim")}</option>
             </select>
           </Field>
         </>
@@ -138,14 +141,15 @@ function PersonalFields({ value, setValue, admin = false }) {
 }
 
 function ProfileCard({ title, subtitle, icon, children }) {
+  const { t } = useLanguage();
   return (
     <section className="account-card">
       <div className="account-heading">
         <div className="avatar">{icon}</div>
         <div>
-          <small className="purple">{"NH\u00C0 S\u00C1CH M\u1ED8C"}</small>
-          <h1>{title}</h1>
-          <p>{subtitle}</p>
+          <small className="purple">{t("NHÀ SÁCH MỘC")}</small>
+          <h1>{t(title)}</h1>
+          <p>{t(subtitle)}</p>
         </div>
       </div>
       {children}
@@ -154,10 +158,11 @@ function ProfileCard({ title, subtitle, icon, children }) {
 }
 
 function Feedback({ message, error }) {
+  const { t } = useLanguage();
   return (
     <>
-      {message && <p className="notice">{message}</p>}
-      {error && <p className="notice notice-error">{error}</p>}
+      {message && <p className="notice">{t(message)}</p>}
+      {error && <p className="notice notice-error">{t(error)}</p>}
     </>
   );
 }
@@ -177,8 +182,8 @@ async function requestProfile(path, token, method = "GET", payload) {
       data.message ||
         data.error ||
         (method === "GET"
-          ? "Kh\u00F4ng th\u1EC3 t\u1EA3i h\u1ED3 s\u01A1."
-          : "Kh\u00F4ng th\u1EC3 c\u1EADp nh\u1EADt h\u1ED3 s\u01A1."),
+          ? "Không thể tải hồ sơ."
+          : "Không thể cập nhật hồ sơ."),
     );
     error.status = response.status;
     throw error;
@@ -202,6 +207,7 @@ function profilePayload(value, admin = false) {
 }
 
 export function CustomerProfile({ token, user, logout, notify }) {
+  const { t } = useLanguage();
   const [value, setValue] = useState(() => emptyCustomer(user.full_name || ""));
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -223,7 +229,7 @@ export function CustomerProfile({ token, user, logout, notify }) {
         if (requestError.status === 404) {
           setValue(emptyCustomer(user.full_name || ""));
           setMessage(
-            "H\u1ED3 s\u01A1 ch\u01B0a c\u00F3 d\u1EEF li\u1EC7u. H\u00E3y ki\u1EC3m tra t\u00EAn v\u00E0 l\u01B0u th\u00F4ng tin c\u1EE7a b\u1EA1n.",
+            "Hồ sơ chưa có dữ liệu. Hãy kiểm tra tên và lưu thông tin của bạn.",
           );
         } else {
           setError(requestError.message);
@@ -249,10 +255,10 @@ export function CustomerProfile({ token, user, logout, notify }) {
         profilePayload(value),
       );
       setMessage(
-        "\u0110\u00E3 c\u1EADp nh\u1EADt h\u1ED3 s\u01A1 th\u00E0nh c\u00F4ng.",
+        "Đã cập nhật hồ sơ thành công.",
       );
       notify(
-        "H\u1ED3 s\u01A1 c\u1EE7a b\u1EA1n \u0111\u00E3 \u0111\u01B0\u1EE3c c\u1EADp nh\u1EADt.",
+        "Hồ sơ của bạn đã được cập nhật.",
       );
     } catch (requestError) {
       setError(requestError.message);
@@ -264,30 +270,30 @@ export function CustomerProfile({ token, user, logout, notify }) {
 
   return (
     <ProfileCard
-      title={"H\u1ED3 s\u01A1 c\u1EE7a t\u00F4i"}
-      subtitle={(user.full_name || "") + " \u00B7 " + (user.email || "")}
+      title={t("Hồ sơ của tôi")}
+      subtitle={(user.full_name || "") + " · " + (user.email || "")}
       icon={<UserRound />}
     >
       <p className="api-note">
         {
-          "Email \u0111\u0103ng nh\u1EADp c\u1EE7a b\u1EA1n kh\u00F4ng th\u1EC3 \u0111\u1ED5i t\u1EA1i \u0111\u00E2y. B\u1EA1n c\u00F3 th\u1EC3 c\u1EADp nh\u1EADt t\u00EAn, s\u1ED1 \u0111i\u1EC7n tho\u1EA1i, ng\u00E0y sinh v\u00E0 \u0111\u1ECBa ch\u1EC9 giao h\u00E0ng."
+          t("Email đăng nhập của bạn không thể đổi tại đây. Bạn có thể cập nhật tên, số điện thoại, ngày sinh và địa chỉ giao hàng.")
         }
       </p>
-      <Feedback message={message} error={error} />
+      <Feedback message={t(message)} error={t(error)} />
       {loading ? (
         <p className="notice">
           <LoaderCircle size={14} className="spin" />{" "}
-          {"\u0110ang t\u1EA3i h\u1ED3 s\u01A1..."}
+          {t("Đang tải hồ sơ...")}
         </p>
       ) : (
         <form className="profile-form" onSubmit={submit}>
           <PersonalFields value={value} setValue={setValue} />
           <div className="profile-actions">
             <button className="primary" disabled={busy}>
-              {busy ? "\u0110ang l\u01B0u..." : "L\u01B0u h\u1ED3 s\u01A1"}
+              {busy ? t("Đang lưu...") : t("Lưu hồ sơ")}
             </button>
             <button type="button" className="secondary" onClick={logout}>
-              <LogOut size={15} /> {"\u0110\u0103ng xu\u1EA5t"}
+              <LogOut size={15} /> {t("Đăng xuất")}
             </button>
           </div>
         </form>
@@ -297,6 +303,7 @@ export function CustomerProfile({ token, user, logout, notify }) {
 }
 
 export function AdminProfileEditor({ token, notify }) {
+  const { t } = useLanguage();
   const [id, setId] = useState("");
   const [value, setValue] = useState(emptyAdmin);
   const [loadedId, setLoadedId] = useState("");
@@ -338,12 +345,12 @@ export function AdminProfileEditor({ token, notify }) {
         profilePayload(value, true),
       );
       setMessage(
-        "\u0110\u00E3 c\u1EADp nh\u1EADt h\u1ED3 s\u01A1 kh\u00E1ch h\u00E0ng #" +
+        "Đã cập nhật hồ sơ khách hàng #" +
           loadedId +
           ".",
       );
       notify(
-        "\u0110\u00E3 c\u1EADp nh\u1EADt h\u1ED3 s\u01A1 kh\u00E1ch h\u00E0ng.",
+        "Đã cập nhật hồ sơ khách hàng.",
       );
     } catch (requestError) {
       setError(requestError.message);
@@ -354,20 +361,20 @@ export function AdminProfileEditor({ token, notify }) {
 
   return (
     <ProfileCard
-      title={"S\u1EEDa h\u1ED3 s\u01A1 kh\u00E1ch h\u00E0ng"}
+      title={t("Sửa hồ sơ khách hàng")}
       subtitle={
-        "T\u1EA3i h\u1ED3 s\u01A1 theo ID kh\u00E1ch h\u00E0ng r\u1ED3i c\u1EADp nh\u1EADt th\u00F4ng tin."
+        t("Tải hồ sơ theo ID khách hàng rồi cập nhật thông tin.")
       }
       icon={<ShieldCheck />}
     >
       <p className="api-note">
         {
-          "Admin c\u00F3 th\u1EC3 c\u1EADp nh\u1EADt t\u00EAn, th\u00F4ng tin li\u00EAn h\u1EC7, \u0111\u1ECBa ch\u1EC9 giao h\u00E0ng, \u0111i\u1EC3m v\u00E0 h\u1EA1ng th\u00E0nh vi\u00EAn."
+          t("Admin có thể cập nhật tên, thông tin liên hệ, địa chỉ giao hàng, điểm và hạng thành viên.")
         }
       </p>
-      <Feedback message={message} error={error} />
+      <Feedback message={t(message)} error={t(error)} />
       <form className="profile-form" onSubmit={load}>
-        <Field label="ID khách hàng">
+        <Field label={t("ID khách hàng")}>
           <input
             type="number"
             min="1"
@@ -378,12 +385,12 @@ export function AdminProfileEditor({ token, notify }) {
               setLoadedId("");
             }}
             required
-            placeholder="Ví dụ: 12"
+            placeholder={t("Ví dụ: 12")}
           />
         </Field>
         <div className="profile-actions">
           <button className="primary" disabled={loading || !id}>
-            {loading ? "\u0110ang t\u1EA3i..." : "T\u1EA3i h\u1ED3 s\u01A1"}
+            {loading ? t("Đang tải...") : t("Tải hồ sơ")}
           </button>
         </div>
       </form>
@@ -393,8 +400,8 @@ export function AdminProfileEditor({ token, notify }) {
           <div className="profile-actions">
             <button className="primary" disabled={busy}>
               {busy
-                ? "\u0110ang c\u1EADp nh\u1EADt..."
-                : "C\u1EADp nh\u1EADt h\u1ED3 s\u01A1"}
+                ? t("Đang cập nhật...")
+                : t("Cập nhật hồ sơ")}
             </button>
           </div>
         </form>

@@ -1,0 +1,28 @@
+export const catalogEntities = {
+  author: {
+    path: "/admin/authors",
+    label: "Tác giả",
+    placeholder: "Chọn tác giả",
+    search: "Tìm tác giả…",
+    create: "Thêm tác giả",
+    name: "Tên tác giả",
+    detail: "Tiểu sử",
+    detailKey: "biography",
+    title: "Quản lý tác giả",
+    description: "Tìm kiếm và thêm tác giả cho cửa hàng.",
+    success: "Đã thêm tác giả.",
+  },
+  publisher: {
+    path: "/admin/publishers",
+    label: "Nhà xuất bản",
+    placeholder: "Chọn nhà xuất bản",
+    search: "Tìm nhà xuất bản…",
+    create: "Thêm nhà xuất bản",
+    name: "Tên nhà xuất bản",
+    detail: "Giới thiệu",
+    detailKey: "description",
+    title: "Quản lý nhà xuất bản",
+    description: "Tìm kiếm và thêm nhà xuất bản cho cửa hàng.",
+    success: "Đã thêm nhà xuất bản.",
+  },
+};
