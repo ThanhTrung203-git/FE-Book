@@ -27,6 +27,7 @@ import {
 import { CartPanel, CheckoutModal } from "./OrderCheckout.jsx";
 import { LanguageToggle, useLanguage } from "./i18n.jsx";
 import "./storefront.css";
+import "./promotions.css";
 
 const API = (
   import.meta.env.VITE_API_URL || "http://localhost:3000/api"
@@ -67,9 +68,41 @@ function BookCover({ book, large = false, eager = false }) {
   );
 }
 
+function PromotionalPrice({ book, compact = false }) {
+  const { t, money } = useLanguage();
+  const [now, setNow] = useState(Date.now());
+  const original = Number(book.original_unit_price ?? book.price);
+  const sale = Number(book.unit_price ?? book.sale_price ?? book.price);
+  const promotion = book.product_promotion;
+  useEffect(() => {
+    if (!promotion?.end_at) return undefined;
+    const timer = window.setInterval(() => setNow(Date.now()), 60000);
+    return () => window.clearInterval(timer);
+  }, [promotion?.end_at]);
+  const remaining = promotion?.end_at ? Date.parse(promotion.end_at) - now : 0;
+  const remainingLabel = remaining > 0
+    ? remaining >= 86400000
+      ? t('Còn {days} ngày', { days: Math.ceil(remaining / 86400000) })
+      : t('Còn {hours} giờ', { hours: Math.max(1, Math.ceil(remaining / 3600000)) })
+    : '';
+  if (!promotion || sale >= original || (promotion.end_at && remaining <= 0)) return <strong className={compact ? 'store-price compact' : 'store-price'}>{money(original)}</strong>;
+  return <div className={`sale-price ${compact ? 'compact' : ''}`}>
+    <span className="sale-price-line"><del>{money(original)}</del><b>{money(sale)}</b>{promotion.percent_off > 0 && <em>-{promotion.percent_off}%</em>}</span>
+    <small>{promotion.name}{remainingLabel ? ` · ${remainingLabel}` : ''}</small>
+  </div>;
+}
+
 function BookDetails({ book, onClose, loading, error, onAddToCart }) {
   const { t, money, categoryLabel } = useLanguage();
   const closeButton = useRef(null);
+  const [couponSuggestions, setCouponSuggestions] = useState([]);
+  useEffect(() => {
+    let active = true;
+    getJson(`/promotions/books/${book.id}`).then((result) => {
+      if (active) setCouponSuggestions(result.data || []);
+    }).catch(() => { if (active) setCouponSuggestions([]); });
+    return () => { active = false; };
+  }, [book.id]);
   useEffect(() => {
     const previous = document.activeElement;
     const overflow = document.body.style.overflow;
@@ -140,7 +173,12 @@ function BookDetails({ book, onClose, loading, error, onAddToCart }) {
               </p>
             )}
             {error && <p className="store-detail-error">{t(error)}</p>}
-            <strong className="store-price">{money(book.price)}</strong>
+            <PromotionalPrice book={book} />
+            {couponSuggestions.length > 0 && <section className="book-promo-suggestions" aria-label={t('Ưu đãi liên quan')}>
+              <b>{t('Ưu đãi liên quan')}</b>
+              {couponSuggestions.map((coupon) => <div key={coupon.id}><span><strong>{coupon.code}</strong> · {coupon.name}<small>{t('Đơn tối thiểu')} {money(coupon.min_order_amount)} · {t('Hạn dùng')}: {coupon.end_at}</small></span><small>{coupon.discount_type === 'percent' ? `${coupon.discount_value}%` : money(coupon.discount_value)} · {t('Có thể áp dụng')}</small></div>)}
+              <small>{t('Điều kiện sẽ được xác nhận theo giỏ hàng khi thanh toán.')}</small>
+            </section>}
             <p className="mp-detail-availability">
               {Number(book.stock_quantity) > 0 ? (
                 <>
@@ -227,7 +265,7 @@ function ProductCard({ book, onDetails, onAdd, added }) {
         </div>
       </button>
       <div className="mp-product-buy">
-        <strong>{money(book.price)}</strong>
+        <PromotionalPrice book={book} compact />
         <small className={available ? "available" : "unavailable"}>
           <span />
           {available ? t("Còn hàng") : t("Tạm hết")}

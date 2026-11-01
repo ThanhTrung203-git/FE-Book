@@ -19,6 +19,7 @@ import {
   ClipboardList,
   Users,
   Building2,
+  TicketPercent,
 } from "lucide-react";
 import { CustomerProfile, AdminProfileEditor } from "./ProfileForms.jsx";
 import { AuthPage } from "./AuthPage.jsx";
@@ -30,6 +31,7 @@ import { LanguageToggle, useLanguage } from "./i18n.jsx";
 import StatusDropdown from "./StatusDropdown.jsx";
 import Editor from "./BookEditor.jsx";
 import CatalogManager from "./CatalogManager.jsx";
+import PromotionManager from "./PromotionManager.jsx";
 const KEY = ACCESS_KEY;
 function StockEditor({ book, close, addStock, busy }) {
   const { t } = useLanguage();
@@ -114,7 +116,8 @@ export default function App() {
     [showAuth, setShowAuth] = useState(false),
     [showStore, setShowStore] = useState(false),
     [accountView, setAccountView] = useState("profile"),
-    [adminOrdersOpen, setAdminOrdersOpen] = useState(false);
+    [adminOrdersOpen, setAdminOrdersOpen] = useState(false),
+    [promotionOpen, setPromotionOpen] = useState(false);
   const logout = useCallback(() => {
       const refreshToken = localStorage.getItem(REFRESH_KEY);
       if (refreshToken)
@@ -436,6 +439,10 @@ export default function App() {
             <ClipboardList />
             {t("Đơn hàng")}
           </button>
+          <button type="button" onClick={() => { setPromotionOpen(true); H(false); }}>
+            <TicketPercent />
+            {t("Khuyến Mãi")}
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -483,6 +490,9 @@ export default function App() {
           onClose={() => setAdminOrdersOpen(false)}
           notify={notify}
         />
+      )}
+      {promotionOpen && (
+        <PromotionManager token={token} onClose={() => setPromotionOpen(false)} notify={notify} />
       )}
       {catalogManager && (
         <CatalogManager
