@@ -324,11 +324,15 @@ export default function App() {
         accountLabel="Tài khoản của tôi"
         token={token}
         user={user}
-        onLogin={() => setShowStore(false)}
+        onViewProfile={() => {
+          setShowStore(false);
+          setAccountView("profile");
+        }}
         onViewOrders={() => {
           setShowStore(false);
           setAccountView("orders");
         }}
+        onLogout={logout}
         onOrderCreated={() => {
           setShowStore(false);
           setAccountView("orders");

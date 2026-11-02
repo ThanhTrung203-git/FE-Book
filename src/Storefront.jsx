@@ -13,6 +13,7 @@ import {
   Heart,
   Leaf,
   LoaderCircle,
+  LogOut,
   PackageCheck,
   Search,
   ShieldCheck,
@@ -290,6 +291,8 @@ export default function Storefront({
   token = "",
   user = null,
   onViewOrders,
+  onViewProfile,
+  onLogout,
   onOrderCreated,
 }) {
   const { t, categoryLabel } = useLanguage();
@@ -313,7 +316,26 @@ export default function Storefront({
   const [selectedBook, setSelectedBook] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef(null);
+  const accountMenuCloseTimer = useRef(null);
   const detailRequest = useRef(null);
+  const openAccountMenu = () => {
+    clearTimeout(accountMenuCloseTimer.current);
+    setAccountMenuOpen(true);
+  };
+  const scheduleAccountMenuClose = () => {
+    clearTimeout(accountMenuCloseTimer.current);
+    accountMenuCloseTimer.current = setTimeout(() => {
+      setAccountMenuOpen(false);
+      accountMenuCloseTimer.current = null;
+    }, 100);
+  };
+  const closeAccountMenu = () => {
+    clearTimeout(accountMenuCloseTimer.current);
+    accountMenuCloseTimer.current = null;
+    setAccountMenuOpen(false);
+  };
   const cartStorageKey = user?.id ? `book-cart-${user.id}` : "book-cart-guest";
   const [cart, setCart] = useState(() => {
     try {
@@ -344,11 +366,30 @@ export default function Storefront({
     Number(Boolean(category)) + Number(Boolean(priceRange)) + Number(inStock);
 
   useEffect(() => {
+    if (!accountMenuOpen) return undefined;
+    const closeOutside = (event) => {
+      if (!accountMenuRef.current?.contains(event.target)) {
+        closeAccountMenu();
+      }
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") closeAccountMenu();
+    };
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [accountMenuOpen]);
+
+  useEffect(() => {
     localStorage.setItem(cartStorageKey, JSON.stringify(cart));
   }, [cartStorageKey, cart]);
   useEffect(
     () => () => {
       clearTimeout(addedTimer.current);
+      clearTimeout(accountMenuCloseTimer.current);
       detailRequest.current?.abort();
     },
     [],
@@ -586,10 +627,76 @@ export default function Storefront({
           </form>
           <div className="store-header-actions mp-header-actions">
             <LanguageToggle />
-            <button className="mp-header-action mp-account" onClick={onLogin}>
-              <UserRound size={22} />
-              <span>{t(accountLabel)}</span>
-            </button>
+            {token && user?.role === "customer" ? (
+              <div
+                className={`mp-account-menu ${accountMenuOpen ? "is-open" : ""}`}
+                ref={accountMenuRef}
+                onMouseEnter={openAccountMenu}
+                onMouseLeave={scheduleAccountMenuClose}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) {
+                    closeAccountMenu();
+                  }
+                }}
+              >
+                <button
+                  className="mp-header-action mp-account"
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={accountMenuOpen}
+                  onClick={() => {
+                    clearTimeout(accountMenuCloseTimer.current);
+                    setAccountMenuOpen((open) => !open);
+                  }}
+                >
+                  <UserRound size={22} />
+                  <span>{t(accountLabel)}</span>
+                </button>
+                {accountMenuOpen && (
+                  <div className="mp-account-dropdown" role="menu">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        closeAccountMenu();
+                        onViewProfile?.();
+                      }}
+                    >
+                      <UserRound size={16} /> {t("Hồ sơ")}
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        closeAccountMenu();
+                        onLogout?.();
+                      }}
+                    >
+                      <LogOut size={16} /> {t("Đăng xuất")}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                className="mp-header-action mp-account"
+                type="button"
+                onClick={onLogin}
+              >
+                <UserRound size={22} />
+                <span>{t(accountLabel)}</span>
+              </button>
+            )}
+            {token && user?.role === "customer" && (
+              <button
+                className="mp-header-action mp-orders"
+                type="button"
+                onClick={onViewOrders}
+              >
+                <PackageCheck size={22} />
+                <span>{t("Đơn hàng của tôi")}</span>
+              </button>
+            )}
             <button
               className="mp-header-action mp-cart"
               onClick={() => setCartOpen(true)}
@@ -606,12 +713,6 @@ export default function Storefront({
         <nav className="mp-nav" aria-label={t("Điều hướng cửa hàng")}>
           <a href="#books">{t("Sách")}</a>
           <a href="#about">{t("Về Mộc")}</a>
-          {token && user?.role === "customer" && (
-            <button className="mp-nav-orders" onClick={onViewOrders}>
-              <PackageCheck size={16} />
-              {t("Đơn hàng của tôi")}
-            </button>
-          )}
         </nav>
       </header>
 

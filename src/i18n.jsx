@@ -79,6 +79,7 @@ const dictionary = {
   "Địa chỉ theo địa giới hành chính cũ": "Use the previous address format",
   "Quận / huyện": "District",
   "Nhập quận / huyện": "Enter district",
+  "địa chỉ đã lưu": "saved address",
   "Số nhà, tên đường": "House number and street",
   "Đang tải…": "Loading…",
   "Không tải được danh sách GHN; bạn có thể nhập địa chỉ bằng tay.": "Could not load GHN locations. You can enter the address manually.",

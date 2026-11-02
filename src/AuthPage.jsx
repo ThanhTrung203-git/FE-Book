@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, ShieldCheck, TriangleAlert } from "lucide-react";
+import { ArrowRight, BookOpen, ShieldCheck, Store, TriangleAlert } from "lucide-react";
 import { LanguageToggle, useLanguage } from "./i18n.jsx";
 
 export function AuthPage({ onLogin, onRegister, onBack }) {
@@ -55,7 +55,19 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
         <small>{t("Đọc chậm. Sống sâu. · EST. 2024")}</small>
       </section>
       <section className="loginbox">
-        <small className="auth-system-label">●　{t("HỆ THỐNG NHÀ SÁCH MỘC")} <LanguageToggle /></small>
+        <div className="auth-system-label">
+          <span className="auth-system-name">●　{t("HỆ THỐNG NHÀ SÁCH MỘC")}</span>
+          <div className="auth-tools">
+            {onBack && (
+              <button className="auth-store-link" type="button" onClick={onBack}>
+                <Store size={16} aria-hidden="true" />
+                <span>{t("Về cửa hàng")}</span>
+                <ArrowRight size={15} aria-hidden="true" />
+              </button>
+            )}
+            <LanguageToggle />
+          </div>
+        </div>
         <div className="loginform">
           <i className="lock">
             <ShieldCheck />
@@ -170,9 +182,6 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
                   setMessage("");
                 }}
               > {t("Quay lại đăng nhập")} </button>
-            )}
-            {onBack && (
-              <button type="button" onClick={onBack}> {t("Về cửa hàng")} </button>
             )}
           </div>
           <p className="secure">

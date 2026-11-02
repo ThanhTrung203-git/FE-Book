@@ -1,13 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { LoaderCircle, Minus, Plus, ShoppingBag, Trash2, Truck, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { LoaderCircle, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import { api } from "./api.js";
 import { useLanguage } from "./i18n.jsx";
+import GhnAddressFields from "./GhnAddressFields.jsx";
 
-
-function field(record, names) {
-  for (const name of names) if (record?.[name] !== undefined) return record[name];
-  return "";
-}
 
 function promotionErrorText(error) {
   if (!error) return '';
@@ -83,13 +79,10 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
   const { t, money } = useLanguage();
   const [form, setForm] = useState({
     recipient_name: user?.full_name || "", recipient_phone: "", address_line: "",
-    to_province_name: "", to_ward_name: "", to_district_name: "", is_new_to_address: true,
+    to_province_id: null, to_province_name: "", to_ward_code: "", to_ward_name: "",
+    to_district_name: "", is_new_to_address: true,
   });
-  const [provinces, setProvinces] = useState([]);
-  const [wards, setWards] = useState([]);
-  const [provinceId, setProvinceId] = useState("");
-  const [addressLookupError, setAddressLookupError] = useState("");
-  const [loadingWards, setLoadingWards] = useState(false);
+  const addressTouched = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -97,9 +90,41 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
   const [quote, setQuote] = useState(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState("");
-  const set = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const set = (key, value) => {
+    if (["address_line", "to_province_id", "to_province_name", "to_ward_code", "to_ward_name", "to_district_name", "is_new_to_address"].includes(key)) {
+      addressTouched.current = true;
+    }
+    setForm((current) => ({ ...current, [key]: value }));
+  };
   const total = useMemo(() => cart.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0), [cart]);
   const itemKey = useMemo(() => JSON.stringify(cart.map((item) => ({ book_id: item.id, quantity: item.quantity }))), [cart]);
+
+  useEffect(() => {
+    let active = true;
+    api("/auth/me/profile", { token })
+      .then((result) => {
+        if (!active || !result.data?.profile) return;
+        const profile = result.data.profile;
+        setForm((current) => ({
+          ...current,
+          recipient_name: current.recipient_name === (user?.full_name || "")
+            ? profile.full_name || current.recipient_name : current.recipient_name,
+          recipient_phone: current.recipient_phone || profile.phone || "",
+          ...(addressTouched.current ? {} : {
+            address_line: profile.shipping_address || "",
+            to_province_id: profile.shipping_province_id ?? null,
+            to_province_name: profile.shipping_province_name || "",
+            to_ward_code: profile.shipping_ward_code || "",
+            to_ward_name: profile.shipping_ward_name || "",
+            to_district_name: profile.shipping_district_name || "",
+            is_new_to_address: profile.shipping_is_new_to_address == null
+              ? true : Boolean(profile.shipping_is_new_to_address),
+          }),
+        }));
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [token, user?.full_name]);
 
   useEffect(() => {
     let active = true;
@@ -115,26 +140,6 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
       .finally(() => { if (active) setQuoteLoading(false); });
     return () => { active = false; };
   }, [itemKey, orderCode, token, cart.length]);
-
-  useEffect(() => {
-    let active = true;
-    api("/shipping/ghn/provinces").then((result) => {
-      if (active) setProvinces(Array.isArray(result.data) ? result.data : []);
-    }).catch((requestError) => active && setAddressLookupError(requestError.message));
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    if (!provinceId) { setWards([]); setLoadingWards(false); return () => { active = false; }; }
-    setWards([]);
-    setLoadingWards(true);
-    api(`/shipping/ghn/provinces/${provinceId}/wards`).then((result) => {
-      if (active) setWards(Array.isArray(result.data) ? result.data : []);
-    }).catch((requestError) => active && setAddressLookupError(requestError.message))
-      .finally(() => active && setLoadingWards(false));
-    return () => { active = false; };
-  }, [provinceId]);
 
   async function submit(event) {
     event.preventDefault(); setBusy(true); setError(""); setSuccess("");
@@ -167,11 +172,12 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
         <label>{t("Người nhận")}<input required maxLength="255" value={form.recipient_name} onChange={(event) => set("recipient_name", event.target.value)} /></label>
         <label>{t("Số điện thoại")}<input required type="tel" maxLength="20" placeholder="09xx xxx xxx" value={form.recipient_phone} onChange={(event) => set("recipient_phone", event.target.value)} /></label>
         <label className="checkout-full">{t("Địa chỉ cụ thể")}<input required maxLength="1024" placeholder={t("Số nhà, tên đường")} value={form.address_line} onChange={(event) => set("address_line", event.target.value)} /></label>
-        <label>{t("Tỉnh / thành phố")}{provinces.length ? <select required value={provinceId} onChange={(event) => { const selectedId = event.target.value; const province = provinces.find((item) => String(field(item, ["ProvinceID", "province_id", "_id", "id"])) === selectedId); setProvinceId(selectedId); setWards([]); setLoadingWards(Boolean(selectedId)); set("to_province_name", field(province, ["ProvinceName", "province_name", "name"])); set("to_ward_name", ""); }}><option value="">{t("Chọn tỉnh / thành phố")}</option>{provinces.map((item) => { const id = field(item, ["ProvinceID", "province_id", "_id", "id"]); return <option key={id} value={id}>{field(item, ["ProvinceName", "province_name", "name"])}</option>; })}</select> : <input required value={form.to_province_name} onChange={(event) => set("to_province_name", event.target.value)} placeholder={t("Nhập tỉnh / thành phố")} />}</label>
-        <label>{t("Phường / xã")}{provinceId && (loadingWards || wards.length) ? <select required value={form.to_ward_name} disabled={loadingWards} onChange={(event) => set("to_ward_name", event.target.value)}><option value="">{loadingWards ? t("Đang tải…") : t("Chọn phường / xã")}</option>{wards.map((item) => { const name = field(item, ["WardName", "ward_name", "name"]); return <option key={field(item, ["WardCode", "ward_code", "_id", "id"]) || name} value={name}>{name}</option>; })}</select> : <input required value={form.to_ward_name} onChange={(event) => set("to_ward_name", event.target.value)} placeholder={t("Nhập phường / xã")} />}</label>
-        <label className="checkout-old-address"><input type="checkbox" checked={!form.is_new_to_address} onChange={(event) => set("is_new_to_address", !event.target.checked)} /> {t("Địa chỉ theo địa giới hành chính cũ")}</label>
-        {!form.is_new_to_address && <label className="checkout-full">{t("Quận / huyện")}<input required value={form.to_district_name} onChange={(event) => set("to_district_name", event.target.value)} placeholder={t("Nhập quận / huyện")} /></label>}
-        {addressLookupError && <p className="checkout-hint checkout-full"><Truck size={15} /> {t("Không tải được danh sách GHN; bạn có thể nhập địa chỉ bằng tay.")} {t(addressLookupError)}</p>}
+        <GhnAddressFields
+          value={form}
+          setValue={setForm}
+          token={token}
+          onEdit={() => { addressTouched.current = true; }}
+        />
         <section className="checkout-promotions checkout-full">
           <b>{t('Mã giảm giá đơn hàng')}</b>
           <div className="checkout-promo-input"><input aria-label={t('Nhập mã giảm giá')} value={orderCode} onChange={(event) => setOrderCode(event.target.value.toUpperCase())} placeholder={t('Nhập mã hoặc chọn gợi ý')} /><button type="button" className="secondary" onClick={() => setOrderCode('')} disabled={!orderCode}>{t('Bỏ mã')}</button></div>

@@ -1,14 +1,8 @@
 import { useLanguage } from "./i18n.jsx";
 import { useEffect, useState } from "react";
 import { LogOut, ShieldCheck, UserRound, LoaderCircle } from "lucide-react";
+import GhnAddressFields from "./GhnAddressFields.jsx";
 
-const PROFILE_KEYS = [
-  "full_name",
-  "phone",
-  "gender",
-  "date_of_birth",
-  "shipping_address",
-];
 const API = (
   import.meta.env.VITE_API_URL || "http://localhost:3000/api"
 ).replace(/\/$/, "");
@@ -18,6 +12,12 @@ const emptyCustomer = (fullName = "") => ({
   gender: "undisclosed",
   date_of_birth: "",
   shipping_address: "",
+  shipping_province_id: null,
+  shipping_province_name: "",
+  shipping_ward_code: "",
+  shipping_ward_name: "",
+  shipping_district_name: "",
+  shipping_is_new_to_address: true,
 });
 const emptyAdmin = () => ({
   ...emptyCustomer(),
@@ -34,6 +34,14 @@ function fromProfile(profile, admin = false, fallbackName = "") {
       ? String(profile.date_of_birth).slice(0, 10)
       : "",
     shipping_address: profile.shipping_address ?? "",
+    shipping_province_id: profile.shipping_province_id ?? null,
+    shipping_province_name: profile.shipping_province_name ?? "",
+    shipping_ward_code: profile.shipping_ward_code ?? "",
+    shipping_ward_name: profile.shipping_ward_name ?? "",
+    shipping_district_name: profile.shipping_district_name ?? "",
+    shipping_is_new_to_address: profile.shipping_is_new_to_address == null
+      ? true
+      : Boolean(profile.shipping_is_new_to_address),
     ...(admin
       ? {
           loyalty_points: profile.loyalty_points ?? 0,
@@ -53,7 +61,7 @@ function Field({ label, children, className = "" }) {
   );
 }
 
-function PersonalFields({ value, setValue, admin = false }) {
+function PersonalFields({ value, setValue, token, admin = false }) {
   const { t } = useLanguage();
   const set = (key, nextValue) =>
     setValue((current) => ({ ...current, [key]: nextValue }));
@@ -101,16 +109,20 @@ function PersonalFields({ value, setValue, admin = false }) {
         label={t("Địa chỉ giao hàng")}
         className="profile-field-wide"
       >
-        <textarea
-          rows="3"
+        <input
           maxLength="1000"
           value={value.shipping_address}
           onChange={(event) => set("shipping_address", event.target.value)}
-          placeholder={
-            t("Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố")
-          }
+          placeholder={t("Số nhà, tên đường")}
         />
       </Field>
+      <GhnAddressFields
+        value={value}
+        setValue={setValue}
+        token={token}
+        prefix="shipping_"
+        profile
+      />
       {admin && (
         <>
           <Field label={t("Điểm thành viên")}>
@@ -198,6 +210,12 @@ function profilePayload(value, admin = false) {
     gender: value.gender,
     date_of_birth: value.date_of_birth || null,
     shipping_address: value.shipping_address.trim() || null,
+    shipping_province_id: value.shipping_province_id || null,
+    shipping_province_name: value.shipping_province_name.trim() || null,
+    shipping_ward_code: value.shipping_ward_code || null,
+    shipping_ward_name: value.shipping_ward_name.trim() || null,
+    shipping_district_name: value.shipping_district_name.trim() || null,
+    shipping_is_new_to_address: Boolean(value.shipping_is_new_to_address),
   };
   if (admin) {
     payload.loyalty_points = Number(value.loyalty_points);
@@ -287,7 +305,7 @@ export function CustomerProfile({ token, user, logout, notify }) {
         </p>
       ) : (
         <form className="profile-form" onSubmit={submit}>
-          <PersonalFields value={value} setValue={setValue} />
+          <PersonalFields value={value} setValue={setValue} token={token} />
           <div className="profile-actions">
             <button className="primary" disabled={busy}>
               {busy ? t("Đang lưu...") : t("Lưu hồ sơ")}
@@ -396,7 +414,7 @@ export function AdminProfileEditor({ token, notify }) {
       </form>
       {loadedId && (
         <form className="profile-form" onSubmit={submit}>
-          <PersonalFields value={value} setValue={setValue} admin />
+          <PersonalFields value={value} setValue={setValue} token={token} admin />
           <div className="profile-actions">
             <button className="primary" disabled={busy}>
               {busy
