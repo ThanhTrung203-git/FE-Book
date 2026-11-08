@@ -110,8 +110,8 @@ export default function PromotionManager({ token, onClose, notify }) {
     <label>{t(label)}<input type={type} required={required} value={state[key]} onChange={(event) => setState((current) => ({ ...current, [key]: event.target.value }))} /></label>
   );
 
-  return <div className="order-overlay" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-    <section className="admin-orders" role="dialog" aria-modal="true" aria-labelledby="promotion-manager-title">
+  return <div className="admin-page-panel">
+    <section className="admin-orders admin-page-card" aria-labelledby="promotion-manager-title">
       <header className="admin-orders-heading"><div><span className="store-kicker">{t('QUẢN LÝ ƯU ĐÃI')}</span><h2 id="promotion-manager-title">{t('Khuyến mãi')}</h2><p>{t('Tạo chương trình giảm trực tiếp và mã giảm giá đơn hàng.')}</p></div><button className="icon" onClick={onClose} aria-label={t('Đóng')}><X /></button></header>
       <div className="admin-order-toolbar"><div className="promotion-tabs"><button className={tab === 'products' ? 'primary' : 'secondary'} onClick={() => setTab('products')}>{t('Giảm trực tiếp')}</button><button className={tab === 'coupons' ? 'primary' : 'secondary'} onClick={() => setTab('coupons')}>{t('Mã giảm giá')}</button></div><button className="secondary" onClick={load} disabled={loading}><RefreshCw size={15} /> {t('Làm mới')}</button></div>
       {error && <div className="order-message order-error">{t(error)}</div>}

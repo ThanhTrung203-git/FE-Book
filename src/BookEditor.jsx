@@ -149,15 +149,10 @@ export default function BookEditor({ book, cats, token, close, save, busy }) {
 
   return (
     <div
-      className="shade"
-      onMouseDown={(event) =>
-        event.target === event.currentTarget && !blocked && close()
-      }
+      className="admin-page-panel"
     >
       <section
-        className="dialog"
-        role="dialog"
-        aria-modal="true"
+        className="dialog admin-page-card"
         aria-labelledby="book-editor-title"
       >
         <header>

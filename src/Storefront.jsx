@@ -1,3 +1,4 @@
+import { BookEngagement, CustomerActivityNav } from "./CustomerFeatures.jsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowDown,
@@ -93,7 +94,7 @@ function PromotionalPrice({ book, compact = false }) {
   </div>;
 }
 
-function BookDetails({ book, onClose, loading, error, onAddToCart }) {
+function BookDetails({ book, onClose, loading, error, onAddToCart, token, user, onLogin }) {
   const { t, money, categoryLabel } = useLanguage();
   const closeButton = useRef(null);
   const [couponSuggestions, setCouponSuggestions] = useState([]);
@@ -228,6 +229,7 @@ function BookDetails({ book, onClose, loading, error, onAddToCart }) {
             </dl>
           </div>
         </div>
+        <BookEngagement key={book.id} bookId={book.id} token={token} user={user} onLogin={onLogin} />
         <div className="mp-description">
           <h3>{t("Về cuốn sách")}</h3>
           <p>{book.description || t("Sách chưa có phần giới thiệu.")}</p>
@@ -294,6 +296,9 @@ export default function Storefront({
   onViewProfile,
   onLogout,
   onOrderCreated,
+  onWishlist,
+  onOpenOrder,
+  focusBookId,
 }) {
   const { t, categoryLabel } = useLanguage();
   const [books, setBooks] = useState([]);
@@ -526,6 +531,7 @@ export default function Storefront({
       if (!controller.signal.aborted) setDetailLoading(false);
     }
   }
+  useEffect(() => { if(focusBookId)showDetails({id:focusBookId}); }, [focusBookId]);
   function addToCart(book) {
     if (Number(book.stock_quantity) < 1) return;
     if (!token) {
@@ -687,6 +693,7 @@ export default function Storefront({
                 <span>{t(accountLabel)}</span>
               </button>
             )}
+            {token && user?.role === "customer" && <CustomerActivityNav token={token} onOpenOrder={onOpenOrder} onWishlist={onWishlist} />}
             {token && user?.role === "customer" && (
               <button
                 className="mp-header-action mp-orders"
@@ -1222,6 +1229,7 @@ export default function Storefront({
           error={detailError}
           onClose={closeDetails}
           onAddToCart={addToCart}
+          token={token} user={user} onLogin={onLogin}
         />
       )}
       {cartOpen && (

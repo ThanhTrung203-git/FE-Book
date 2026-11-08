@@ -80,7 +80,7 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
   const [form, setForm] = useState({
     recipient_name: user?.full_name || "", recipient_phone: "", address_line: "",
     to_province_id: null, to_province_name: "", to_ward_code: "", to_ward_name: "",
-    to_district_name: "", is_new_to_address: true,
+    to_district_name: "", is_new_to_address: true, payment_method: "cod",
   });
   const addressTouched = useRef(false);
   const [busy, setBusy] = useState(false);
@@ -153,10 +153,16 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
           to_province_name: form.to_province_name,
           ...(form.is_new_to_address ? {} : { to_district_name: form.to_district_name.trim() }),
           is_new_to_address: form.is_new_to_address,
+          payment_method: form.payment_method,
           items: cart.map((item) => ({ book_id: item.id, quantity: item.quantity })),
           order_promotion_code: orderCode.trim() || null,
         }),
       });
+      if (form.payment_method === "vnpay") {
+        onComplete(result.data);
+        if (result.payment?.url) window.location.assign(result.payment.url);
+        return;
+      }
       setSuccess(result.data?.shipping_error
         ? `${t("Đã tạo đơn")}${result.data.order_code}; ${t("chưa tạo được vận đơn:")} ${t(result.data.shipping_error)}`
         : `${t("Đặt hàng thành công, đang chờ cửa hàng xác nhận. Mã đơn: ")}${result.data?.order_code || ""}`);
@@ -178,6 +184,17 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
           token={token}
           onEdit={() => { addressTouched.current = true; }}
         />
+        <fieldset className="checkout-payment checkout-full" disabled={busy}>
+          <legend>{t("Phương thức thanh toán")}</legend>
+          <label className={form.payment_method === "cod" ? "payment-option is-selected" : "payment-option"}>
+            <input type="radio" name="payment_method" value="cod" checked={form.payment_method === "cod"} onChange={() => set("payment_method", "cod")} />
+            <span><b>{t("Thanh toán khi nhận hàng (COD)")}</b><small>{t("Thanh toán tiền sách sau giảm giá và phí giao hàng khi nhận hàng.")}</small></span>
+          </label>
+          <label className={form.payment_method === "vnpay" ? "payment-option is-selected" : "payment-option"}>
+            <input type="radio" name="payment_method" value="vnpay" checked={form.payment_method === "vnpay"} onChange={() => set("payment_method", "vnpay")} />
+            <span><b>VNPAY</b><small>{t("Thanh toán trực tuyến cả tiền sách và phí giao hàng qua VNPAY.")}</small></span>
+          </label>
+        </fieldset>
         <section className="checkout-promotions checkout-full">
           <b>{t('Mã giảm giá đơn hàng')}</b>
           <div className="checkout-promo-input"><input aria-label={t('Nhập mã giảm giá')} value={orderCode} onChange={(event) => setOrderCode(event.target.value.toUpperCase())} placeholder={t('Nhập mã hoặc chọn gợi ý')} /><button type="button" className="secondary" onClick={() => setOrderCode('')} disabled={!orderCode}>{t('Bỏ mã')}</button></div>
@@ -187,8 +204,8 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
         </section>
         {error && <p className="order-message order-error checkout-full">{t(error)}</p>}
         {success && <p className="order-message checkout-success checkout-full">{success}</p>}
-        <button className="primary checkout-full" disabled={busy || quoteLoading || !cart.length || !quote || Boolean(quote.promotion_error)}>{busy ? <><LoaderCircle className="spin" size={16} /> {t("Đang tạo đơn…")}</> : `${t("Xác nhận đặt hàng")} · ${money(quote?.total_amount ?? total)}`}</button>
-      </form><aside className="checkout-summary"><b>{t("Đơn hàng của bạn")}</b>{(quote?.items || cart).map((item) => <div key={item.book_id || item.id}><span>{item.book_title || item.title} {t("×")} {item.quantity}</span><b>{money(item.line_subtotal ?? item.unit_price * item.quantity ?? item.price * item.quantity)}</b></div>)}<hr /><div><span>{t('Giảm trực tiếp')}</span><b>-{money(quote?.direct_discount_amount || 0)}</b></div><div><span>{t('Mã đơn hàng')}</span><b>-{money(quote?.order_discount_amount || 0)}</b></div><div className="checkout-total"><span>{t("Tổng tiền sách")}</span><b>{money(quote?.total_amount ?? total)}</b></div><small>{t("Giá, tồn kho và ưu đãi sẽ được backend xác nhận. Đơn hàng chờ cửa hàng xác nhận thủ công.")}</small></aside></div>
+        <button className="primary checkout-full" disabled={busy || quoteLoading || !cart.length || !quote || Boolean(quote.promotion_error)}>{busy ? <><LoaderCircle className="spin" size={16} /> {t("Đang tạo đơn…")}</> : (form.payment_method === "vnpay" ? t("Tiếp tục đến VNPAY") : `${t("Xác nhận đặt hàng")} · ${money(quote?.total_amount ?? total)}`)}</button>
+      </form><aside className="checkout-summary"><b>{t("Đơn hàng của bạn")}</b>{(quote?.items || cart).map((item) => <div key={item.book_id || item.id}><span>{item.book_title || item.title} {t("×")} {item.quantity}</span><b>{money(item.line_subtotal ?? item.unit_price * item.quantity ?? item.price * item.quantity)}</b></div>)}<hr /><div><span>{t('Giảm trực tiếp')}</span><b>-{money(quote?.direct_discount_amount || 0)}</b></div><div><span>{t('Mã đơn hàng')}</span><b>-{money(quote?.order_discount_amount || 0)}</b></div><div className="checkout-total"><span>{t("Tổng tiền sách")}</span><b>{money(quote?.total_amount ?? total)}</b></div><small>{t(form.payment_method === "vnpay" ? "Phí giao hàng sẽ được xác định trước khi chuyển đến VNPAY. Tổng thanh toán bao gồm phí giao hàng." : "Bạn sẽ thanh toán khi nhận hàng (COD). Phí giao hàng được cập nhật khi tạo vận đơn GHN.")}</small><small>{t("Giá, tồn kho và ưu đãi sẽ được backend xác nhận. Đơn hàng chờ cửa hàng xác nhận thủ công.")}</small></aside></div>
     </section>
   </div>;
 }

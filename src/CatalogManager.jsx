@@ -53,15 +53,10 @@ export default function CatalogManager({ kind, token, close, notify }) {
 
   return (
     <div
-      className="shade"
-      onMouseDown={(event) =>
-        event.target === event.currentTarget && !createBusy && close()
-      }
+      className="admin-page-panel"
     >
       <section
-        className="dialog catalog-manager"
-        role="dialog"
-        aria-modal="true"
+        className="dialog catalog-manager admin-page-card"
         aria-labelledby="catalog-manager-title"
       >
         <header>
@@ -73,7 +68,7 @@ export default function CatalogManager({ kind, token, close, notify }) {
             </div>
           </div>
           <button
-            className="icon"
+            className="icon admin-page-close"
             disabled={createBusy}
             onClick={close}
             aria-label={t("Đóng")}

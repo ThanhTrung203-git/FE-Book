@@ -133,17 +133,14 @@ export default function CategoryManager({ token, onClose, onChange, notify }) {
 
   return (
     <div
-      className="modal-shade"
-      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+      className="admin-page-panel"
     >
       <section
-        className="category-manager account-card"
-        role="dialog"
-        aria-modal="true"
+        className="category-manager account-card admin-page-card"
         aria-labelledby="category-manager-title"
       >
         <button
-          className="modal-close"
+          className="modal-close admin-page-close"
           type="button"
           onClick={onClose}
           aria-label={t("Đóng")}

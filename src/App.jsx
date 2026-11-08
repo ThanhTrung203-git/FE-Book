@@ -1,3 +1,5 @@
+import { CustomerActivityNav, WishlistPage } from "./CustomerFeatures.jsx";
+import Dashboard from "./Dashboard.jsx";
 import { useCallback, useEffect, useState } from "react";
 import {
   BookOpen,
@@ -20,6 +22,7 @@ import {
   Users,
   Building2,
   TicketPercent,
+  LayoutDashboard,
 } from "lucide-react";
 import { CustomerProfile, AdminProfileEditor } from "./ProfileForms.jsx";
 import { AuthPage } from "./AuthPage.jsx";
@@ -48,10 +51,9 @@ function StockEditor({ book, close, addStock, busy }) {
   }
   return (
     <div
-      className="shade"
-      onMouseDown={(event) => event.target === event.currentTarget && close()}
+      className="admin-page-panel"
     >
-      <section className="dialog stock-dialog">
+      <section className="dialog stock-dialog admin-page-card">
         <header>
           <div>
             <small className="purple">{t("CẬP NHẬT KHO")}</small>
@@ -110,14 +112,15 @@ export default function App() {
     [busy, V] = useState(false),
     [toast, Z] = useState(""),
     [mobile, H] = useState(false),
-    [profileOpen, ProfileOpen] = useState(false),
-    [categoryOpen, CategoryOpen] = useState(false),
     [catalogManager, setCatalogManager] = useState(null),
     [showAuth, setShowAuth] = useState(false),
     [showStore, setShowStore] = useState(false),
-    [accountView, setAccountView] = useState("profile"),
-    [adminOrdersOpen, setAdminOrdersOpen] = useState(false),
-    [promotionOpen, setPromotionOpen] = useState(false);
+    [accountView, setAccountView] = useState(() => new URLSearchParams(window.location.search).get("payment") === "vnpay" ? "orders" : "profile"),
+    [activePage, setActivePage] = useState("dashboard");
+  const [focusedOrderId, setFocusedOrderId] = useState(null);
+  const [focusedBookId, setFocusedBookId] = useState(null);
+  const openCustomerOrder = (id) => { setFocusedOrderId({id,version:Date.now()}); setShowStore(false); setAccountView("orders"); };
+  const openWishlist = () => { setShowStore(false); setAccountView("wishlist"); };
   const logout = useCallback(() => {
       const refreshToken = localStorage.getItem(REFRESH_KEY);
       if (refreshToken)
@@ -132,6 +135,7 @@ export default function App() {
       T("");
       U(null);
       setCatalogManager(null);
+      setActivePage("products");
       B([]);
     }, []),
     notify = (m) => {
@@ -157,8 +161,9 @@ export default function App() {
     T(accessToken);
     U(d.data.user);
     if (d.data.user?.role === "customer") {
-      setAccountView("profile");
-      setShowStore(true);
+      const returningPayment = new URLSearchParams(window.location.search).get("payment") === "vnpay";
+      setAccountView(returningPayment ? "orders" : "profile");
+      setShowStore(!returningPayment);
     } else {
       setShowStore(false);
     }
@@ -227,6 +232,7 @@ export default function App() {
         },
       );
       D(null);
+      setActivePage("products");
       if (result.action === "stock_added") {
         notify({
           key: Number(result.data?.is_active)
@@ -246,6 +252,7 @@ export default function App() {
     try {
       const result = await api(`/admin/books/${book.id}`, { token });
       D({ book: result.data });
+      setActivePage("book-editor");
     } catch (error) {
       notify(error.message);
     } finally {
@@ -262,6 +269,7 @@ export default function App() {
         body: JSON.stringify({ quantity }),
       });
       setStockDialog(null);
+      setActivePage("products");
       notify(t("Đã cộng số lượng sách."));
       await load();
     } finally {
@@ -321,6 +329,7 @@ export default function App() {
   if (user.role === "customer" && showStore)
     return (
       <Storefront
+        focusBookId={focusedBookId} onWishlist={openWishlist} onOpenOrder={openCustomerOrder}
         accountLabel="Tài khoản của tôi"
         token={token}
         user={user}
@@ -365,13 +374,14 @@ export default function App() {
             >
               {t("Hồ sơ")}
             </button>
+            <CustomerActivityNav token={token} onOpenOrder={openCustomerOrder} onWishlist={openWishlist} />
             <LanguageToggle /> {user.full_name} · {t("Khách hàng")}
           </span>
         </header>
         <div className="account-content">
           {accountView === "orders" ? (
-            <CustomerOrders token={token} />
-          ) : (
+            <CustomerOrders token={token} focusOrderId={focusedOrderId} />
+          ) : accountView === "wishlist" ? <WishlistPage token={token} onOpenBook={(id) => {setFocusedBookId(id);setShowStore(true);}} /> : (
             <CustomerProfile
               token={token}
               user={user}
@@ -393,11 +403,12 @@ export default function App() {
           mộc<span>.</span>
         </b>
         <nav aria-label={t("Điều hướng quản trị")}>
+          <button type="button" className={activePage === "dashboard" ? "selected" : ""} aria-current={activePage === "dashboard" ? "page" : undefined} onClick={() => { setActivePage("dashboard"); H(false); }}><LayoutDashboard />{t("Dashboard")}</button>
           <button
             type="button"
-            className="selected"
-            aria-current="page"
-            onClick={() => H(false)}
+            className={activePage === "products" ? "selected" : ""}
+            aria-current={activePage === "products" ? "page" : undefined}
+            onClick={() => { setActivePage("products"); D(null); setStockDialog(null); H(false); }}
           >
             <BookOpen />
             {t("Sản phẩm")}
@@ -405,8 +416,9 @@ export default function App() {
           </button>
           <button
             type="button"
+            className={activePage === "categories" ? "selected" : ""}
             onClick={() => {
-              CategoryOpen(true);
+              setActivePage("categories");
               H(false);
             }}
           >
@@ -415,8 +427,10 @@ export default function App() {
           </button>
           <button
             type="button"
+            className={activePage === "author" ? "selected" : ""}
             onClick={() => {
               setCatalogManager("author");
+              setActivePage("author");
               H(false);
             }}
           >
@@ -425,8 +439,10 @@ export default function App() {
           </button>
           <button
             type="button"
+            className={activePage === "publisher" ? "selected" : ""}
             onClick={() => {
               setCatalogManager("publisher");
+              setActivePage("publisher");
               H(false);
             }}
           >
@@ -435,22 +451,24 @@ export default function App() {
           </button>
           <button
             type="button"
+            className={activePage === "orders" ? "selected" : ""}
             onClick={() => {
-              setAdminOrdersOpen(true);
+              setActivePage("orders");
               H(false);
             }}
           >
             <ClipboardList />
             {t("Đơn hàng")}
           </button>
-          <button type="button" onClick={() => { setPromotionOpen(true); H(false); }}>
+          <button type="button" className={activePage === "promotions" ? "selected" : ""} onClick={() => { setActivePage("promotions"); H(false); }}>
             <TicketPercent />
             {t("Khuyến Mãi")}
           </button>
           <button
             type="button"
+            className={activePage === "profile" ? "selected" : ""}
             onClick={() => {
-              ProfileOpen(true);
+              setActivePage("profile");
               H(false);
             }}
           >
@@ -465,13 +483,14 @@ export default function App() {
           </button>
         </div>
       </aside>
-      {profileOpen && (
-        <div className="modal-shade">
-          <div className="profile-modal">
+      {activePage === "dashboard" && <Dashboard token={token} onOpenMenu={() => H(true)} onViewOrders={() => setActivePage("orders")} onViewProducts={() => setActivePage("products")} />}
+      {activePage === "profile" && (
+        <div className="admin-page-panel">
+          <div className="profile-modal admin-page-card">
             <button
               className="modal-close"
               type="button"
-              onClick={() => ProfileOpen(false)}
+              onClick={() => setActivePage("products")}
               aria-label={t("Đóng")}
             >
               <X size={16} />
@@ -480,35 +499,35 @@ export default function App() {
           </div>
         </div>
       )}
-      {categoryOpen && (
+      {activePage === "categories" && (
         <CategoryManager
           token={token}
-          onClose={() => CategoryOpen(false)}
+          onClose={() => setActivePage("products")}
           onChange={G}
           notify={notify}
         />
       )}
-      {adminOrdersOpen && (
+      {activePage === "orders" && (
         <AdminOrders
           token={token}
-          onClose={() => setAdminOrdersOpen(false)}
+          onClose={() => setActivePage("products")}
           notify={notify}
         />
       )}
-      {promotionOpen && (
-        <PromotionManager token={token} onClose={() => setPromotionOpen(false)} notify={notify} />
+      {activePage === "promotions" && (
+        <PromotionManager token={token} onClose={() => setActivePage("products")} notify={notify} />
       )}
-      {catalogManager && (
+      {(activePage === "author" || activePage === "publisher") && catalogManager && (
         <CatalogManager
           key={catalogManager}
           kind={catalogManager}
           token={token}
-          close={() => setCatalogManager(null)}
+          close={() => { setCatalogManager(null); setActivePage("products"); }}
           notify={notify}
         />
       )}
       {mobile && <button className="scrim" onClick={() => H(false)} />}
-      <main className="main">
+      <main className={activePage === "products" ? "main" : "main admin-main-hidden"}>
         <header className="topbar">
           <button className="mobile icon" onClick={() => H(true)}>
             <Menu />
@@ -529,7 +548,7 @@ export default function App() {
             <button
               className="primary"
               disabled={busy}
-              onClick={() => D({ book: null })}
+              onClick={() => { D({ book: null }); setActivePage("book-editor"); }}
             >
               <Plus />
               {t("Thêm sản phẩm")}
@@ -691,7 +710,7 @@ export default function App() {
                             <button
                               className="icon"
                               disabled={busy}
-                              onClick={() => setStockDialog(b)}
+                              onClick={() => { setStockDialog(b); setActivePage("stock"); }}
                               title={t("Thêm số lượng")}
                               aria-label={`${t("Thêm số lượng")} ${b.title}`}
                             >
@@ -736,21 +755,21 @@ export default function App() {
           </footer>
         </div>
       </main>
-      {dialog && (
+      {dialog && activePage === "book-editor" && (
         <Editor
           key={dialog.book?.id || "new"}
           book={dialog.book}
           token={token}
           cats={cats}
-          close={() => D(null)}
+          close={() => { D(null); setActivePage("products"); }}
           save={save}
           busy={busy}
         />
       )}
-      {stockDialog && (
+      {stockDialog && activePage === "stock" && (
         <StockEditor
           book={stockDialog}
-          close={() => setStockDialog(null)}
+          close={() => { setStockDialog(null); setActivePage("products"); }}
           addStock={addStockQuantity}
           busy={busy}
         />
