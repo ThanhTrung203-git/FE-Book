@@ -1,3 +1,6 @@
+import { defaultOrderTimeValue } from "./orderTimeFilter.js";
+import "./adminOrderFilters.css";
+import { BulkPanel, BulkCheckbox, useBulkSelection } from "./BulkActions.jsx";
 import { OrderHistory, PaymentDeadline } from "./CustomerFeatures.jsx";
 import { ORDER_STEPS, getOrderStatusMessage, getPaymentNotice } from "./orderPresentation.js";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -264,21 +267,30 @@ export function AdminOrders({ token, onClose, notify }) {
   const [meta, setMeta] = useState({ page: 1, limit: 20, total: 0 });
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
+  const [timeUnit,setTimeUnit]=useState(""),[timeValue,setTimeValue]=useState("");
+  const loadVersion=useRef(0);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [expanded, setExpanded] = useState(null);
+  const [bulkBusy,setBulkBusy]=useState(false);
+  const scope=JSON.stringify([page,statusFilter,timeUnit,timeValue]);
+  const selection=useBulkSelection(orders,scope);
   const load = useCallback(async () => {
+    const version=++loadVersion.current;
     setLoading(true); setError("");
     try {
+      if(timeUnit&&!timeValue){setOrders([]);setMeta({page:1,limit:20,total:0});return;}
       const params = new URLSearchParams({ page: String(page), limit: "20" });
       if (statusFilter) params.set("status", statusFilter);
+      if(timeUnit){params.set("time_unit",timeUnit);params.set("time_value",timeValue);}
       const result = await api(`/admin/orders?${params}`, { token });
+      if(version!==loadVersion.current)return;
       setOrders(result.data || []);
       setMeta(result.meta || { page, limit: 20, total: 0 });
-    } catch (requestError) { setError(requestError.message); }
-    finally { setLoading(false); }
-  }, [page, statusFilter, token]);
+    } catch (requestError) { if(version===loadVersion.current)setError(requestError.message); }
+    finally { if(version===loadVersion.current)setLoading(false); }
+  }, [page, statusFilter, timeUnit, timeValue, token]);
   useEffect(() => { load(); }, [load]);
 
   async function mutate(order, action, status) {
@@ -299,27 +311,78 @@ export function AdminOrders({ token, onClose, notify }) {
     finally { setBusy(""); }
   }
 
+  const bulkActions=[
+    ...["confirmed","processing","shipped","delivered","cancelled"].map(status=>({
+      id:status,label:({confirmed:"Xác nhận các đơn đã chọn",processing:"Chuyển các đơn sang đang chuẩn bị",shipped:"Chuyển các đơn sang đang giao",delivered:"Đánh dấu các đơn đã giao",cancelled:"Hủy các đơn đã chọn"})[status],
+      danger:status==="cancelled",
+      check:order=>{
+        if(order.status===status)return "Đã ở trạng thái yêu cầu";
+        if(!NEXT[order.status]?.includes(status))return "Không thể chuyển từ trạng thái hiện tại";
+        if(order.payment_method==="vnpay"){
+          if(status==="cancelled"&&["paid","refund_required","review_required"].includes(order.payment_status))return "Đơn VNPAY cần xử lý hoàn tiền hoặc đối soát trước khi hủy";
+          if(status!=="cancelled"&&order.payment_status!=="paid")return "Đơn VNPAY chưa thanh toán thành công";
+        }
+        return null;
+      },
+      run:order=>api("/admin/orders/"+order.id+"/status",{method:"PATCH",token,body:JSON.stringify({status})}),
+    })),
+    {id:"create_shipment",label:"Tạo vận đơn cho các đơn đã chọn",check:order=>{
+      if(order.ghn_order_code)return "Đơn đã có vận đơn";
+      if(["cancelled","delivered"].includes(order.status))return "Đơn hàng đã kết thúc";
+      if(order.payment_method==="vnpay"&&order.payment_status!=="paid")return "Đơn VNPAY chưa thanh toán thành công";
+      return null;
+    },run:order=>api("/admin/orders/"+order.id+"/shipment",{method:"POST",token})},
+    {id:"sync_shipment",label:"Đồng bộ GHN cho các đơn đã chọn",check:order=>!order.ghn_order_code?"Đơn chưa có vận đơn":null,run:order=>api("/admin/orders/"+order.id+"/shipment",{token})},
+  ];
   const pages = Math.max(1, Math.ceil(meta.total / (meta.limit || 20)));
   return <div className="admin-page-panel">
     <section className="admin-orders admin-page-card" aria-labelledby="admin-orders-title">
       <header className="admin-orders-heading"><div><span className="store-kicker">{t("TRUNG TÂM ĐIỀU HÀNH")}</span><h2 id="admin-orders-title">{t("Quản lý đơn hàng")}</h2><p>{meta.total} {t("đơn hàng trong cửa hàng.")}</p></div><button className="icon" onClick={onClose} aria-label={t("Đóng")}><X /></button></header>
-      <div className="admin-order-toolbar"><label>{t("Lọc trạng thái")} <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}><option value="">{t("Tất cả đơn hàng")}</option>{Object.entries(STATUSES).map(([value, label]) => <option key={value} value={value}>{t(label)}</option>)}</select></label><button className="secondary" onClick={load} disabled={loading}><RefreshCw size={15} /> {t("Làm mới")}</button></div>
+      <div className="admin-order-toolbar admin-order-time-filters">
+        <label>{t("Lọc trạng thái")}<select disabled={Boolean(busy)||bulkBusy} value={statusFilter} onChange={event=>{setStatusFilter(event.target.value);setPage(1);}}>
+          <option value="">{t("Tất cả đơn hàng")}</option>{Object.entries(STATUSES).map(([value,label])=><option key={value} value={value}>{t(label)}</option>)}
+        </select></label>
+        <label>{t("Lọc theo thời gian")}<select disabled={Boolean(busy)||bulkBusy} value={timeUnit} onChange={event=>{
+          const unit=event.target.value;setTimeUnit(unit);setTimeValue(defaultOrderTimeValue(unit));setPage(1);
+        }}>
+          <option value="">{t("Tất cả thời gian")}</option>
+          <option value="month">{t("Theo tháng")}</option><option value="week">{t("Theo tuần")}</option>
+          <option value="day">{t("Theo ngày")}</option><option value="hour">{t("Theo giờ")}</option>
+        </select></label>
+        {timeUnit&&<label>{t(({month:"Chọn tháng",week:"Chọn tuần",day:"Chọn ngày",hour:"Chọn ngày và giờ"})[timeUnit])}
+          <input type={timeUnit==="hour"?"datetime-local":timeUnit==="day"?"date":timeUnit} step={timeUnit==="hour"?3600:undefined}
+            value={timeValue} disabled={Boolean(busy)||bulkBusy} required
+            onChange={event=>{setTimeValue(timeUnit==="hour"&&event.target.value?event.target.value.slice(0,13)+":00":event.target.value);setPage(1);}}/>
+        </label>}
+        <div className="admin-order-filter-buttons">
+          <button type="button" className="secondary" onClick={load} disabled={loading||Boolean(busy)||bulkBusy}><RefreshCw size={15}/>{t("Làm mới")}</button>
+          {(statusFilter||timeUnit)&&<button type="button" className="secondary" disabled={Boolean(busy)||bulkBusy}
+            onClick={()=>{setStatusFilter("");setTimeUnit("");setTimeValue("");setPage(1);}}>{t("Xóa bộ lọc")}</button>}
+        </div>
+      </div>
+      {timeUnit&&<p className="admin-order-time-note" role="status">
+        {t("Lọc theo thời gian tạo đơn, giờ Việt Nam. Tuần bắt đầu từ thứ Hai.")}
+        {!timeValue&&" "+t("Chọn mốc thời gian để lọc.")}
+        {meta.time_range&&!loading&&<span>{t("Từ {from} đến trước {to}",{from:meta.time_range.from,to:meta.time_range.to})}</span>}
+      </p>}
+      <BulkPanel selection={selection} actions={bulkActions} scope={scope} disabled={Boolean(busy) || loading} onBusyChange={setBulkBusy} onComplete={load}/>
       {error && <div className="order-message order-error">{t(error)}</div>}
       {loading ? <div className="store-state"><LoaderCircle className="spin" /> {t("Đang tải đơn hàng…")}</div>
-        : orders.length === 0 ? <div className="order-empty"><PackageCheck /><b>{t("Chưa có đơn hàng")}</b></div>
+        : orders.length === 0 ? <div className="order-empty"><PackageCheck /><b>{t(statusFilter||timeUnit?"Không có đơn hàng phù hợp":"Chưa có đơn hàng")}</b></div>
           : <div className="admin-order-list">{orders.map((order) => <article className="order-card" key={order.id}>
+            <label className="bulk-row-label"><BulkCheckbox checked={selection.has(order.id)} disabled={Boolean(busy)||bulkBusy} aria-label={t("Chọn {name}",{name:order.order_code})} onChange={()=>selection.toggle(order.id)}/>{t("Chọn đơn hàng")}</label>
             <div className="order-card-head"><div><small>{t("MÃ ĐƠN")} · {t("KHÁCH")} #{order.user_id}</small><b>{order.order_code}</b><span>{dateTime(order.created_at)} · {order.recipient_name}</span></div><span className={`order-status status-${order.status}`}>{t(STATUSES[order.status] || order.status)}</span></div>
             <div className="order-summary"><span>{order.items?.length || 0} {t("loại sách")} · {order.recipient_phone}</span><b>{money(getOrderTotal(order))}</b></div>
             <div className="admin-order-actions">
-              <StatusDropdown value={order.status} disabled={Boolean(busy) || !NEXT[order.status]?.length}
+              <StatusDropdown value={order.status} disabled={Boolean(busy) || bulkBusy || !NEXT[order.status]?.length}
                 label={t("Trạng thái đơn hàng: {code}", { code: order.order_code })}
                 onChange={(status) => mutate(order, "status", status)}
                 options={[order.status, ...(NEXT[order.status] || []).filter((status) => order.payment_method !== "vnpay" || (status === "cancelled" ? ["unpaid", "failed"].includes(order.payment_status) : order.payment_status === "paid"))].map((value) => ({
                   value, label: t(STATUSES[value] || value),
                   tone: value === "delivered" ? "green" : value === "cancelled" ? "red" : "purple",
                 }))} />
-              {!order.ghn_order_code && (order.payment_method !== "vnpay" || order.payment_status === "paid") && !["cancelled", "delivered"].includes(order.status) && <button className="secondary" disabled={Boolean(busy)} onClick={() => mutate(order, "create")}><PackageCheck size={15} /> {t("Tạo vận đơn")}</button>}
-              {order.ghn_order_code && <><span className="ghn-code"><Truck size={14} /> {order.ghn_order_code} · {t(order.ghn_status || "chưa cập nhật")}</span><button className="secondary" disabled={Boolean(busy)} onClick={() => mutate(order, "sync")}><RefreshCw size={14} /> {t("Đồng bộ GHN")}</button></>}
+              {!order.ghn_order_code && (order.payment_method !== "vnpay" || order.payment_status === "paid") && !["cancelled", "delivered"].includes(order.status) && <button className="secondary" disabled={Boolean(busy)||bulkBusy} onClick={() => mutate(order, "create")}><PackageCheck size={15} /> {t("Tạo vận đơn")}</button>}
+              {order.ghn_order_code && <><span className="ghn-code"><Truck size={14} /> {order.ghn_order_code} · {t(order.ghn_status || "chưa cập nhật")}</span><button className="secondary" disabled={Boolean(busy)||bulkBusy} onClick={() => mutate(order, "sync")}><RefreshCw size={14} /> {t("Đồng bộ GHN")}</button></>}
               <button className="order-toggle" onClick={() => setExpanded(expanded === order.id ? null : order.id)}>{expanded === order.id ? t("Thu gọn") : t("Chi tiết")}</button>
             </div>
             <OrderPayment order={order} />
@@ -327,7 +390,7 @@ export function AdminOrders({ token, onClose, notify }) {
           <OrderDeliveryEstimate order={order} />
           {expanded === order.id && <div className="order-expanded"><OrderItems items={order.items} /><div><b>{t("Địa chỉ:")}</b> {order.shipping_address}</div>{(order.promotion_usages || []).map((use) => <div key={use.promotion_id}><b>{use.code_snapshot}</b> · {use.name_snapshot} · -{money(use.discount_amount)}</div>)}<OrderPriceSummary order={order} /><OrderHistory order={order} token={token} admin /></div>}
           </article>)}</div>}
-      {!loading && meta.total > 20 && <div className="store-pagination"><span>{t("Trang ")}{page} / {pages}</span><div><button aria-label={t("Trang trước")} disabled={page <= 1} onClick={() => setPage((value) => value - 1)}><ArrowLeft size={16} /></button><button aria-label={t("Trang sau")} disabled={page >= pages} onClick={() => setPage((value) => value + 1)}><ArrowRight size={16} /></button></div></div>}
+      {!loading && meta.total > 20 && <div className="store-pagination"><span>{t("Trang ")}{page} / {pages}</span><div><button aria-label={t("Trang trước")} disabled={page <= 1||Boolean(busy)||bulkBusy} onClick={() => setPage((value) => value - 1)}><ArrowLeft size={16} /></button><button aria-label={t("Trang sau")} disabled={page >= pages||Boolean(busy)||bulkBusy} onClick={() => setPage((value) => value + 1)}><ArrowRight size={16} /></button></div></div>}
     </section>
   </div>;
 }

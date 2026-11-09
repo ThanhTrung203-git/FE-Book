@@ -1,3 +1,4 @@
+import { BulkPanel, BulkCheckbox, BulkCreateNames, useBulkSelection } from "./BulkActions.jsx";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -29,6 +30,9 @@ export default function CatalogManager({ kind, token, close, notify }) {
   const [createBusy, setCreateBusy] = useState(false);
   const [revision, setRevision] = useState(0);
   const pages = Math.max(1, Math.ceil(total / 20));
+  const [bulkCreating,setBulkCreating]=useState(false),[bulkBusy,setBulkBusy]=useState(false);
+  const scope=JSON.stringify([kind,page,search]);
+  const selection=useBulkSelection(rows,scope);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -69,7 +73,7 @@ export default function CatalogManager({ kind, token, close, notify }) {
           </div>
           <button
             className="icon admin-page-close"
-            disabled={createBusy}
+            disabled={createBusy || bulkBusy}
             onClick={close}
             aria-label={t("Đóng")}
           >
@@ -87,6 +91,7 @@ export default function CatalogManager({ kind, token, close, notify }) {
           >
             <Search size={16} />
             <input
+              disabled={bulkBusy}
               aria-label={t(config.search)}
               placeholder={t(config.search)}
               value={keyword}
@@ -97,13 +102,15 @@ export default function CatalogManager({ kind, token, close, notify }) {
           </form>
           <button
             className="primary"
-            disabled={creating}
-            onClick={() => setCreating(true)}
+            disabled={creating || bulkBusy}
+            onClick={() => {setBulkCreating(false);setCreating(true);}}
           >
             <Plus size={16} />
             {t(config.create)}
           </button>
         </div>
+        <button type="button" className="secondary" disabled={createBusy || bulkBusy} onClick={()=>{setCreating(false);setBulkCreating(value=>!value);}}>{t("Thêm nhiều tên")}</button>
+        {bulkCreating && <BulkCreateNames kind={kind} token={token} onBusyChange={setBulkBusy} onCancel={()=>setBulkCreating(false)} onComplete={()=>setRevision(value=>value+1)}/>}
         {creating && (
           <CatalogCreateForm
             kind={kind}
@@ -132,6 +139,9 @@ export default function CatalogManager({ kind, token, close, notify }) {
             </button>
           </p>
         )}
+        {kind==="publisher" && <BulkPanel selection={selection} scope={scope} disabled={createBusy || loading || bulkBusy} onBusyChange={setBulkBusy}
+          actions={[{id:"delete",label:"Xóa các NXB đã chọn",danger:true,check:row=>Number(row.book_count)>0?"NXB đang có sách sử dụng, không thể xóa":null,run:row=>api("/admin/publishers/"+row.id,{method:"DELETE",token})}]}
+          onComplete={()=>{setRevision(value=>value+1);}}/>}
         <div className="catalog-records" aria-busy={loading}>
           {loading ? (
             <p className="catalog-empty">
@@ -141,6 +151,7 @@ export default function CatalogManager({ kind, token, close, notify }) {
           ) : rows.length ? (
             rows.map((record) => (
               <article key={record.id} className="catalog-record">
+                {kind==="publisher" && <BulkCheckbox checked={selection.has(record.id)} disabled={bulkBusy || createBusy || !selection.canSelect(record.id)} aria-label={t("Chọn {name}",{name:record.name})} onChange={()=>selection.toggle(record.id)}/>}
                 <span className="catalog-record-icon">
                   <Icon size={18} />
                 </span>
@@ -184,7 +195,7 @@ export default function CatalogManager({ kind, token, close, notify }) {
           <div>
             <button
               className="icon"
-              disabled={loading || page <= 1}
+              disabled={loading || bulkBusy || page <= 1}
               onClick={() => setPage((current) => current - 1)}
               aria-label={t("Trang trước")}
             >
@@ -196,7 +207,7 @@ export default function CatalogManager({ kind, token, close, notify }) {
             </span>
             <button
               className="icon"
-              disabled={loading || page >= pages}
+              disabled={loading || bulkBusy || page >= pages}
               onClick={() => setPage((current) => current + 1)}
               aria-label={t("Trang sau")}
             >

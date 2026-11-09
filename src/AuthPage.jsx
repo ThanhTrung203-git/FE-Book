@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowRight, BookOpen, ShieldCheck, Store, TriangleAlert } from "lucide-react";
-import { LanguageToggle, useLanguage } from "./i18n.jsx";
+import { useLanguage } from "./i18n.jsx";
 
 export function AuthPage({ onLogin, onRegister, onBack }) {
   const { t } = useLanguage();
@@ -65,7 +65,7 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
                 <ArrowRight size={15} aria-hidden="true" />
               </button>
             )}
-            <LanguageToggle />
+
           </div>
         </div>
         <div className="loginform">

@@ -27,7 +27,7 @@ import {
   X,
 } from "lucide-react";
 import { CartPanel, CheckoutModal } from "./OrderCheckout.jsx";
-import { LanguageToggle, useLanguage } from "./i18n.jsx";
+import { useLanguage } from "./i18n.jsx";
 import "./storefront.css";
 import "./promotions.css";
 
@@ -632,7 +632,7 @@ export default function Storefront({
             </button>
           </form>
           <div className="store-header-actions mp-header-actions">
-            <LanguageToggle />
+
             {token && user?.role === "customer" ? (
               <div
                 className={`mp-account-menu ${accountMenuOpen ? "is-open" : ""}`}

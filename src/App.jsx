@@ -1,5 +1,7 @@
 import { CustomerActivityNav, WishlistPage } from "./CustomerFeatures.jsx";
 import Dashboard from "./Dashboard.jsx";
+import BookExcelImport from "./BookExcelImport.jsx";
+import { BulkPanel, BulkCheckbox, useBulkSelection } from "./BulkActions.jsx";
 import { useCallback, useEffect, useState } from "react";
 import {
   BookOpen,
@@ -23,6 +25,7 @@ import {
   Building2,
   TicketPercent,
   LayoutDashboard,
+  FileSpreadsheet,
 } from "lucide-react";
 import { CustomerProfile, AdminProfileEditor } from "./ProfileForms.jsx";
 import { AuthPage } from "./AuthPage.jsx";
@@ -30,7 +33,7 @@ import CategoryManager from "./CategoryManager.jsx";
 import Storefront from "./Storefront.jsx";
 import { AdminOrders, CustomerOrders } from "./OrderFeatures.jsx";
 import { ACCESS_KEY, REFRESH_KEY, api } from "./api.js";
-import { LanguageToggle, useLanguage } from "./i18n.jsx";
+import { useLanguage } from "./i18n.jsx";
 import StatusDropdown from "./StatusDropdown.jsx";
 import Editor from "./BookEditor.jsx";
 import CatalogManager from "./CatalogManager.jsx";
@@ -119,6 +122,7 @@ export default function App() {
     [activePage, setActivePage] = useState("dashboard");
   const [focusedOrderId, setFocusedOrderId] = useState(null);
   const [focusedBookId, setFocusedBookId] = useState(null);
+  const productSelection = useBulkSelection(books, JSON.stringify([page, search, cat, activePage]));
   const openCustomerOrder = (id) => { setFocusedOrderId({id,version:Date.now()}); setShowStore(false); setAccountView("orders"); };
   const openWishlist = () => { setShowStore(false); setAccountView("wishlist"); };
   const logout = useCallback(() => {
@@ -375,7 +379,7 @@ export default function App() {
               {t("Hồ sơ")}
             </button>
             <CustomerActivityNav token={token} onOpenOrder={openCustomerOrder} onWishlist={openWishlist} />
-            <LanguageToggle /> {user.full_name} · {t("Khách hàng")}
+             {user.full_name} · {t("Khách hàng")}
           </span>
         </header>
         <div className="account-content">
@@ -534,7 +538,7 @@ export default function App() {
           </button>
           {t("Cửa hàng")}　/　<b>{t("Sản phẩm")}</b>
           <span className="admin-top-actions">
-            <LanguageToggle />
+
             {user.full_name}
           </span>
         </header>
@@ -545,6 +549,8 @@ export default function App() {
               <h1>{t("Quản lý sản phẩm")}</h1>
               <p>{t("Theo dõi danh mục sách của cửa hàng.")}</p>
             </div>
+            <div className="product-create-actions">
+            <button type="button" className="secondary" disabled={busy} onClick={() => setActivePage("book-import")}><FileSpreadsheet size={17}/>{t("Nhập Excel")}</button>
             <button
               className="primary"
               disabled={busy}
@@ -553,6 +559,7 @@ export default function App() {
               <Plus />
               {t("Thêm sản phẩm")}
             </button>
+            </div>
           </div>
           <section className="stats">
             <article>
@@ -571,6 +578,12 @@ export default function App() {
               <b>{cats.length}</b>
             </article>
           </section>
+          <BulkPanel selection={productSelection} showSelectAll={false} disabled={busy || loading} onBusyChange={V} scope={JSON.stringify([page,search,cat,activePage])} onComplete={load}
+            actions={[
+              {id:"show",label:"Hiện các sách đã chọn",check:row=>Number(row.is_active)?"Đã ở trạng thái yêu cầu":null,run:row=>api("/admin/books/"+row.id,{method:"PATCH",token,body:JSON.stringify({is_active:true})})},
+              {id:"hide",label:"Ẩn các sách đã chọn",check:row=>!Number(row.is_active)?"Đã ở trạng thái yêu cầu":null,run:row=>api("/admin/books/"+row.id,{method:"PATCH",token,body:JSON.stringify({is_active:false})})},
+              {id:"category",label:"Đổi thể loại các sách đã chọn",input:{label:"Thể loại",options:cats.map(category=>({value:String(category.id),label:categoryLabel(category.name)}))},check:(row,value)=>Number(row.category_id)===Number(value)?"Đã ở thể loại yêu cầu":null,run:(row,value)=>api("/admin/books/"+row.id,{method:"PATCH",token,body:JSON.stringify({category_id:Number(value)})})},
+            ]}/>
           <section className="products">
             <header>
               <div>
@@ -590,14 +603,16 @@ export default function App() {
               >
                 <Search />
                 <input
+                  disabled={busy}
                   placeholder={t("Tìm theo tên sách…")}
                   value={q}
                   onChange={(e) => Q(e.target.value)}
                 />
-                <button>{t("Tìm kiếm")}</button>
+                <button disabled={busy}>{t("Tìm kiếm")}</button>
               </form>
               <select
                 value={cat}
+                disabled={busy}
                 onChange={(e) => {
                   F(e.target.value);
                   P(1);
@@ -615,6 +630,7 @@ export default function App() {
               <table>
                 <thead>
                   <tr>
+                    <th className="bulk-table-check"><BulkCheckbox aria-label={t("Chọn trang hiện tại")} checked={productSelection.all} indeterminate={productSelection.some} disabled={busy || loading} onChange={productSelection.toggleAll}/></th>
                     <th>{t("SẢN PHẨM")}</th>
                     <th>{t("MÃ SÁCH")}</th>
                     <th>{t("THỂ LOẠI")}</th>
@@ -627,19 +643,20 @@ export default function App() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan="7" className="empty">
+                      <td colSpan="8" className="empty">
                         {t("Đang tải…")}
                       </td>
                     </tr>
                   ) : books.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="empty">
+                      <td colSpan="8" className="empty">
                         {t("Chưa tìm thấy sách.")}
                       </td>
                     </tr>
                   ) : (
                     books.map((b, i) => (
                       <tr key={b.id}>
+                        <td className="bulk-table-check"><BulkCheckbox aria-label={t("Chọn {name}",{name:b.title})} checked={productSelection.has(b.id)} disabled={busy} onChange={()=>productSelection.toggle(b.id)}/></td>
                         <td>
                           <div className="book">
                             {b.cover_url ? (
@@ -733,7 +750,7 @@ export default function App() {
               <div>
                 <button
                   className="icon"
-                  disabled={page <= 1 || loading}
+                  disabled={page <= 1 || loading || busy}
                   onClick={() => P(page - 1)}
                 >
                   <ArrowLeft />
@@ -742,7 +759,7 @@ export default function App() {
                 {page}/{pages}{" "}
                 <button
                   className="icon"
-                  disabled={page >= pages || loading}
+                  disabled={page >= pages || loading || busy}
                   onClick={() => P(page + 1)}
                 >
                   <ArrowRight />
@@ -755,6 +772,7 @@ export default function App() {
           </footer>
         </div>
       </main>
+      {activePage === "book-import" && <BookExcelImport token={token} onClose={() => setActivePage("products")} onComplete={async () => { await load(); const categories = await api("/admin/categories", {token}); G(categories.data || []); }} />}
       {dialog && activePage === "book-editor" && (
         <Editor
           key={dialog.book?.id || "new"}

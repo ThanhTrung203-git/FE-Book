@@ -3,6 +3,7 @@ import { CheckCircle2, LoaderCircle, X } from "lucide-react";
 import { api } from "./api.js";
 import { useLanguage } from "./i18n.jsx";
 import EntitySelect from "./EntitySelect.jsx";
+import CategorySelect from "./CategorySelect.jsx";
 import CatalogCreateForm from "./CatalogCreateForm.jsx";
 
 const EMPTY = {
@@ -16,7 +17,7 @@ const EMPTY = {
   publication_year: "",
 };
 export default function BookEditor({ book, cats, token, close, save, busy }) {
-  const { t, categoryLabel } = useLanguage();
+  const { t } = useLanguage();
   const editing = Boolean(book);
   const [form, setForm] = useState(() => ({
     ...EMPTY,
@@ -126,6 +127,10 @@ export default function BookEditor({ book, cats, token, close, save, busy }) {
     const values = merging
       ? { ...form, ...duplicate, title: form.title }
       : form;
+    if (!values.category_id) {
+      setError(t("Vui lòng chọn thể loại."));
+      return;
+    }
     const payload = {
       title: form.title.trim(),
       author_ids: authors.map((item) => Number(item.id)),
@@ -265,22 +270,13 @@ export default function BookEditor({ book, cats, token, close, save, busy }) {
               field("stock_quantity", "Số lượng cần thêm", "number", true)
             ) : (
               <>
-                <label className="field">
-                  {t("Thể loại")} *
-                  <select
-                    required
-                    disabled={blocked}
-                    value={form.category_id}
-                    onChange={(event) => set("category_id", event.target.value)}
-                  >
-                    <option value="">{t("Chọn thể loại")}</option>
-                    {cats.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {categoryLabel(category.name)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <CategorySelect
+                  categories={cats}
+                  selectedId={form.category_id}
+                  token={token}
+                  disabled={blocked || Boolean(creatingKind)}
+                  onChange={value => set("category_id", value)}
+                />
                 {field("price", "Giá bán (₫)", "number", true)}
                 {field("weight_grams", "Khối lượng (gram)", "number", true)}
                 {field(

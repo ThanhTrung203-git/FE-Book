@@ -1,1 +1,10 @@
-<!doctype html><html lang="vi"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><meta name="theme-color" content="#f8f5fc"/><meta name="description" content="Khám phá những cuốn sách hay tại Mộc Bookstore."/><title>Mộc Bookstore · Sách hay cho người yêu đọc</title></head><body><div id="root"></div><script type="module" src="/src/main.jsx"></script></body></html>
+<!doctype html><html lang="vi"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><meta name="theme-color" content="#f8f5fc"/><meta name="description" content="Khám phá những cuốn sách hay tại Mộc Bookstore."/><title>Mộc Bookstore · Sách hay cho người yêu đọc</title><style>html{background:#f7f7fb}html[data-theme=dark]{background:#17141e}</style><script>
+try {
+  var storedTheme=localStorage.getItem("book-theme");
+  var initialDark=storedTheme==="dark"||(!["light","dark"].includes(storedTheme)&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.dataset.theme=initialDark?"dark":"light";
+  document.documentElement.style.colorScheme=initialDark?"dark":"light";
+  document.documentElement.lang=localStorage.getItem("book-language")==="en"?"en":"vi";
+  document.querySelector('meta[name="theme-color"]').setAttribute("content",initialDark?"#17141e":"#f8f5fc");
+} catch { document.documentElement.dataset.theme="light"; }
+</script></head><body><div id="root"></div><script type="module" src="/src/main.jsx"></script></body></html>

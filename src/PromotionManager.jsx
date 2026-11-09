@@ -1,3 +1,4 @@
+import { BulkPanel, BulkCheckbox, useBulkSelection } from './BulkActions.jsx';
 import { useCallback, useEffect, useState } from 'react';
 import { LoaderCircle, RefreshCw, Save, TicketPercent, X } from 'lucide-react';
 import { api } from './api.js';
@@ -30,6 +31,12 @@ export default function PromotionManager({ token, onClose, notify }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [bulkBusy,setBulkBusy]=useState(false);
+  const selection=useBulkSelection(tab==='products'?products:coupons,tab);
+  const bulkActions=[true,false].map(active=>({id:active?'enable':'disable',label:active?'Bật các ưu đãi đã chọn':'Tắt các ưu đãi đã chọn',
+    check:row=>Boolean(Number(row.is_active))===active?'Đã ở trạng thái yêu cầu':null,
+    run:row=>api('/admin/promotions/'+tab+'/'+row.id+'/active',{method:'PATCH',token,body:JSON.stringify({is_active:active})}),
+  }));
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try {
@@ -113,10 +120,11 @@ export default function PromotionManager({ token, onClose, notify }) {
   return <div className="admin-page-panel">
     <section className="admin-orders admin-page-card" aria-labelledby="promotion-manager-title">
       <header className="admin-orders-heading"><div><span className="store-kicker">{t('QUẢN LÝ ƯU ĐÃI')}</span><h2 id="promotion-manager-title">{t('Khuyến mãi')}</h2><p>{t('Tạo chương trình giảm trực tiếp và mã giảm giá đơn hàng.')}</p></div><button className="icon" onClick={onClose} aria-label={t('Đóng')}><X /></button></header>
-      <div className="admin-order-toolbar"><div className="promotion-tabs"><button className={tab === 'products' ? 'primary' : 'secondary'} onClick={() => setTab('products')}>{t('Giảm trực tiếp')}</button><button className={tab === 'coupons' ? 'primary' : 'secondary'} onClick={() => setTab('coupons')}>{t('Mã giảm giá')}</button></div><button className="secondary" onClick={load} disabled={loading}><RefreshCw size={15} /> {t('Làm mới')}</button></div>
+      <div className="admin-order-toolbar"><div className="promotion-tabs"><button className={tab === 'products' ? 'primary' : 'secondary'} disabled={bulkBusy||saving} onClick={() => setTab('products')}>{t('Giảm trực tiếp')}</button><button className={tab === 'coupons' ? 'primary' : 'secondary'} disabled={bulkBusy||saving} onClick={() => setTab('coupons')}>{t('Mã giảm giá')}</button></div><button className="secondary" onClick={load} disabled={loading||saving||bulkBusy}><RefreshCw size={15} /> {t('Làm mới')}</button></div>
+      <BulkPanel selection={selection} actions={bulkActions} scope={tab} disabled={loading||saving} onBusyChange={setBulkBusy} onComplete={load}/>
       {error && <div className="order-message order-error">{t(error)}</div>}
       {loading ? <div className="store-state"><LoaderCircle className="spin" /> {t('Đang tải ưu đãi…')}</div> : tab === 'products' ? <>
-        <form className="promotion-form" onSubmit={saveProduct}>
+        <form className="promotion-form" onSubmit={event=>{if(bulkBusy){event.preventDefault();return;}saveProduct(event);}}>
           {field(product, setProduct, 'name', 'Tên chương trình', 'text', true)}
           <label>{t('Loại giảm')}<select value={product.discount_type} onChange={(event) => setProduct((v) => ({ ...v, discount_type: event.target.value }))}><option value="percent">{t('Phần trăm')}</option><option value="fixed">{t('Số tiền')}</option></select></label>
           {field(product, setProduct, 'discount_value', 'Giá trị giảm', 'number', true)}
@@ -126,11 +134,11 @@ export default function PromotionManager({ token, onClose, notify }) {
           {field(product, setProduct, 'start_at', 'Bắt đầu', 'datetime-local', true)}
           {field(product, setProduct, 'end_at', 'Kết thúc', 'datetime-local', true)}
           <label className="promotion-active"><input type="checkbox" checked={product.is_active} onChange={(event) => setProduct((v) => ({ ...v, is_active: event.target.checked }))} /> {t('Đang hoạt động')}</label>
-          <div className="promotion-form-actions"><button className="primary" disabled={saving}><Save size={15} /> {t(editProduct ? 'Cập nhật' : 'Tạo chương trình')}</button>{editProduct && <button type="button" className="secondary" onClick={() => { setEditProduct(null); setProduct(emptyProduct()); }}>{t('Hủy sửa')}</button>}</div>
+          <div className="promotion-form-actions"><button className="primary" disabled={saving||bulkBusy}><Save size={15} /> {t(editProduct ? 'Cập nhật' : 'Tạo chương trình')}</button>{editProduct && <button type="button" className="secondary" onClick={() => { setEditProduct(null); setProduct(emptyProduct()); }}>{t('Hủy sửa')}</button>}</div>
         </form>
-        <div className="promotion-list">{products.map((row) => <article className="order-card" key={row.id}><div><b>{row.name}</b><span>{row.discount_type === 'percent' ? `${row.discount_value}%` : money(row.discount_value)} · {row.is_active ? t('Đang bật') : t('Đã tắt')}</span><small>{dateTime(row.start_at)} – {dateTime(row.end_at)}</small><small>{row.books.map((book) => `${book.title} (#${book.book_id})`).join(', ')}</small></div><button className="secondary" onClick={() => editProductRow(row)}>{t('Sửa')}</button></article>)}</div>
+        <div className="promotion-list">{products.map((row) => <article className="order-card" key={row.id}><label className="bulk-row-label"><BulkCheckbox checked={selection.has(row.id)} disabled={bulkBusy||saving||!selection.canSelect(row.id)} aria-label={t("Chọn {name}",{name:row.code||row.name})} onChange={()=>selection.toggle(row.id)}/>{t("Chọn ưu đãi")}</label><div><b>{row.name}</b><span>{row.discount_type === 'percent' ? `${row.discount_value}%` : money(row.discount_value)} · {row.is_active ? t('Đang bật') : t('Đã tắt')}</span><small>{dateTime(row.start_at)} – {dateTime(row.end_at)}</small><small>{row.books.map((book) => `${book.title} (#${book.book_id})`).join(', ')}</small></div><button className="secondary" disabled={bulkBusy||saving} onClick={() => editProductRow(row)}>{t('Sửa')}</button></article>)}</div>
       </> : <>
-        <form className="promotion-form" onSubmit={saveCoupon}>
+        <form className="promotion-form" onSubmit={event=>{if(bulkBusy){event.preventDefault();return;}saveCoupon(event);}}>
           {field(coupon, setCoupon, 'name', 'Tên chương trình', 'text', true)}
           {field(coupon, setCoupon, 'code', 'Mã giảm giá', 'text', true)}
           <label>{t('Loại giảm')}<select value={coupon.discount_type} onChange={(event) => setCoupon((v) => ({ ...v, discount_type: event.target.value }))}><option value="percent">{t('Phần trăm')}</option><option value="fixed">{t('Số tiền')}</option></select></label>
@@ -144,9 +152,9 @@ export default function PromotionManager({ token, onClose, notify }) {
           {field(coupon, setCoupon, 'start_at', 'Bắt đầu', 'datetime-local', true)}
           {field(coupon, setCoupon, 'end_at', 'Kết thúc', 'datetime-local', true)}
           <label className="promotion-active"><input type="checkbox" checked={coupon.is_active} onChange={(event) => setCoupon((v) => ({ ...v, is_active: event.target.checked }))} /> {t('Đang hoạt động')}</label>
-          <div className="promotion-form-actions"><button className="primary" disabled={saving}><TicketPercent size={15} /> {t(editCoupon ? 'Cập nhật' : 'Tạo mã')}</button>{editCoupon && <button type="button" className="secondary" onClick={() => { setEditCoupon(null); setCoupon(emptyCoupon()); }}>{t('Hủy sửa')}</button>}</div>
+          <div className="promotion-form-actions"><button className="primary" disabled={saving||bulkBusy}><TicketPercent size={15} /> {t(editCoupon ? 'Cập nhật' : 'Tạo mã')}</button>{editCoupon && <button type="button" className="secondary" onClick={() => { setEditCoupon(null); setCoupon(emptyCoupon()); }}>{t('Hủy sửa')}</button>}</div>
         </form>
-        <div className="promotion-list">{coupons.map((row) => <article className="order-card" key={row.id}><div><b>{row.code} · {row.name}</b><span>{row.discount_type === 'percent' ? `${row.discount_value}%` : money(row.discount_value)} · {t('Đã dùng {used}/{limit}', { used: row.usage_count, limit: row.total_usage_limit ?? '∞' })}</span><small>{t(scopeLabels[row.scope_type] || row.scope_type)} · {t('Đơn tối thiểu')} {money(row.min_order_amount)} · {dateTime(row.end_at)}</small></div><button className="secondary" onClick={() => editCouponRow(row)}>{t('Sửa')}</button></article>)}</div>
+        <div className="promotion-list">{coupons.map((row) => <article className="order-card" key={row.id}><label className="bulk-row-label"><BulkCheckbox checked={selection.has(row.id)} disabled={bulkBusy||saving||!selection.canSelect(row.id)} aria-label={t("Chọn {name}",{name:row.code||row.name})} onChange={()=>selection.toggle(row.id)}/>{t("Chọn ưu đãi")}</label><div><b>{row.code} · {row.name}</b><span>{row.discount_type === 'percent' ? `${row.discount_value}%` : money(row.discount_value)} · {t('Đã dùng {used}/{limit}', { used: row.usage_count, limit: row.total_usage_limit ?? '∞' })}</span><small>{t(scopeLabels[row.scope_type] || row.scope_type)} · {t('Đơn tối thiểu')} {money(row.min_order_amount)} · {dateTime(row.end_at)}</small></div><button className="secondary" disabled={bulkBusy||saving} onClick={() => editCouponRow(row)}>{t('Sửa')}</button></article>)}</div>
       </>}
     </section>
   </div>;

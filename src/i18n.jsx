@@ -3,6 +3,147 @@ import { Languages } from "lucide-react";
 import { localizeCategory } from "./categoryTranslations.js";
 
 const dictionary = {
+  "Giao diện và ngôn ngữ": "Appearance and language",
+  "Ngôn ngữ": "Language",
+  "Chuyển sang giao diện sáng": "Switch to light mode",
+  "Chuyển sang giao diện tối": "Switch to dark mode",
+  "Xem chi tiết kết quả": "View result details",
+  "Xác nhận": "Confirm",
+  "Lọc theo thời gian": "Filter by time",
+  "Tất cả thời gian": "All time",
+  "Theo tháng": "By month",
+  "Theo tuần": "By week",
+  "Theo ngày": "By day",
+  "Theo giờ": "By hour",
+  "Chọn tháng": "Select month",
+  "Chọn tuần": "Select week",
+  "Chọn ngày": "Select date",
+  "Chọn ngày và giờ": "Select date and hour",
+  "Lọc theo thời gian tạo đơn, giờ Việt Nam. Tuần bắt đầu từ thứ Hai.": "Filter by order creation time in Vietnam. Weeks start on Monday.",
+  "Chọn mốc thời gian để lọc.": "Select a time to filter.",
+  "Từ {from} đến trước {to}": "From {from} until before {to}",
+  "Thao tác hàng loạt": "Bulk actions",
+  "Chọn trang hiện tại": "Select current page",
+  "Chọn thao tác": "Choose an action",
+  "Vui lòng chọn": "Please select",
+  "Xem lại thao tác": "Review action",
+  "Chỉ áp dụng các mục đã chọn trên trang hiện tại, tối đa 100 mục.": "Applies only to selected items on the current page, up to 100 items.",
+  "Xác nhận thao tác hàng loạt": "Confirm bulk action",
+  "mục": "items",
+  "Xác nhận thực hiện": "Confirm action",
+  "Đang xử lý": "Processing",
+  "Kết quả": "Results",
+  "thành công": "succeeded",
+  "lỗi": "failed",
+  "bỏ qua / chưa chạy": "skipped / not run",
+  "Thêm nhiều tên": "Add multiple names",
+  "Mỗi dòng một tên, tối đa 100 tên. Tên trùng trong danh sách chỉ xử lý một lần.": "One name per line, up to 100 names. Duplicate names are processed once.",
+  "Kiểm tra danh sách": "Validate list",
+  "Chọn {name}": "Select {name}",
+  "Chọn đơn hàng": "Select order",
+  "Chọn ưu đãi": "Select promotion",
+  "Chưa thực hiện": "Not run",
+  "Thành công": "Succeeded",
+  "Không xử lý được mục này": "Could not process this item",
+  "Chọn từ 1 đến 100 mục": "Select between 1 and 100 items",
+  "Tên tối đa 255 ký tự": "Names can contain up to 255 characters",
+  "Tối đa 100 mục mỗi lần": "Up to 100 items per action",
+  "Tên này đã có trong danh mục": "This name already exists in the catalog",
+  "Tên này khớp nhiều thể loại. Hãy kiểm tra danh mục.": "This name matches multiple categories. Check the catalog.",
+  "Thêm các tên đã chọn": "Create selected names",
+  "Hiện các sách đã chọn": "Show selected books",
+  "Ẩn các sách đã chọn": "Hide selected books",
+  "Đổi thể loại các sách đã chọn": "Change category of selected books",
+  "Đã ở trạng thái yêu cầu": "Already in the requested state",
+  "Đã ở thể loại yêu cầu": "Already in the requested category",
+  "Xóa các thể loại đã chọn": "Delete selected categories",
+  "Xóa các NXB đã chọn": "Delete selected publishers",
+  "NXB đang có sách sử dụng, không thể xóa": "This publisher is linked to books and cannot be deleted",
+  "Bật các ưu đãi đã chọn": "Enable selected promotions",
+  "Tắt các ưu đãi đã chọn": "Disable selected promotions",
+  "Xác nhận các đơn đã chọn": "Confirm selected orders",
+  "Chuyển các đơn sang đang chuẩn bị": "Mark selected orders as preparing",
+  "Chuyển các đơn sang đang giao": "Mark selected orders as shipped",
+  "Đánh dấu các đơn đã giao": "Mark selected orders as delivered",
+  "Hủy các đơn đã chọn": "Cancel selected orders",
+  "Tạo vận đơn cho các đơn đã chọn": "Create shipments for selected orders",
+  "Đồng bộ GHN cho các đơn đã chọn": "Sync GHN for selected orders",
+  "Không thể chuyển từ trạng thái hiện tại": "Transition is not allowed from the current status",
+  "Đơn đã có vận đơn": "This order already has a shipment",
+  "Đơn hàng đã kết thúc": "This order has ended",
+  "Đơn chưa có vận đơn": "This order has no shipment",
+  "Đơn VNPAY cần xử lý hoàn tiền hoặc đối soát trước khi hủy": "This VNPAY order requires a refund or reconciliation before cancellation",
+  "Đơn VNPAY chưa thanh toán thành công": "This VNPAY order has not been paid successfully",
+  "Sách trùng tên, tác giả, NXB và thể loại sẽ được cộng kho và cập nhật giá, năm xuất bản, ảnh bìa nếu thay đổi. Năm/ảnh để trống giữ giá trị hiện có.": "Books matching title, authors, publishers and category are restocked and their price, publication year and cover updated when changed. Blank year/cover cells preserve existing values.",
+  "Thay đổi thông tin": "Metadata changes",
+  "Cộng kho & cập nhật": "Restock & update",
+  "Cập nhật thông tin": "Metadata updates",
+  "Không thay đổi": "Unchanged",
+  "Thêm đầu sách / cập nhật sách trùng": "Add titles / update matching books",
+  "URL ảnh bìa": "Cover URL",
+  "Giá bán": "Price",
+  "Nhập sách bằng Excel": "Import books from Excel",
+  "Tải mẫu → Điền dữ liệu → Kiểm tra → Xác nhận nhập": "Download template → Fill in data → Validate → Confirm import",
+  "Loại nhập": "Import type",
+  "Thêm đầu sách / cộng sách trùng": "Add titles / restock matching books",
+  "Cộng kho theo mã sách": "Restock by book code",
+  "Tải file mẫu": "Download template",
+  "File Excel (.xlsx)": "Excel file (.xlsx)",
+  "Kiểm tra file": "Validate file",
+  "Tối đa 500 dòng, 5 MB. Số lượng là số cần cộng thêm. Nhiều tác giả/NXB ngăn cách bằng dấu ;. Không nhận công thức.": "Up to 500 rows, 5 MB. Quantities are added to stock. Separate multiple authors/publishers with ;. Formulas are not accepted.",
+  "Sách trùng tên, tác giả và NXB chỉ được cộng kho; giá và thông tin hiện tại được giữ nguyên.": "Books with matching title, authors and publishers are restocked; their current price and details are preserved.",
+  "Đang xử lý, vui lòng chờ…": "Processing, please wait…",
+  "Mã lần nhập": "Import ID",
+  "Đã hoàn tất nhập Excel": "Excel import completed",
+  "sách mới": "new titles",
+  "sách cộng kho": "restocked titles",
+  "Gửi lại cùng file sẽ trả kết quả này, không cộng kho lần nữa.": "Uploading the same file returns this result without adding stock again.",
+  "Dòng dữ liệu": "Data rows",
+  "Sách mới": "New titles",
+  "Sách cộng kho": "Restocked titles",
+  "Dòng cần xử lý": "Rows needing attention",
+  "Xử lý danh mục chưa khớp": "Resolve unmatched catalog entries",
+  "Chọn bản ghi có sẵn hoặc xác nhận tạo mới cho từng tên. Sau đó bấm Kiểm tra lại.": "Choose an existing record or approve creating each name, then select Validate again.",
+  "Cách xử lý": "Resolution",
+  "Chọn cách xử lý": "Choose a resolution",
+  "Tạo mới": "Create new",
+  "Tên sẽ tạo": "Name to create",
+  "Kết quả nhập": "Import results",
+  "Xem trước dữ liệu": "Data preview",
+  "Chỉ hiện dòng lỗi": "Show errors only",
+  "Dòng": "Row",
+  "Xử lý": "Action",
+  "Số lượng nhập": "Import quantity",
+  "Tồn kho trước → sau": "Stock before → after",
+  "Ghi chú / lỗi": "Notes / errors",
+  "Giữ giá": "Preserved price",
+  "Cần xử lý": "Needs attention",
+  "Tạo sách": "Create book",
+  "Cộng kho": "Restock",
+  "Sách đang ẩn; nhập kho không đổi trạng thái.": "This book is hidden; importing stock preserves its visibility.",
+  "Không có dòng phù hợp.": "No matching rows.",
+  "dòng": "rows",
+  "Tải file báo lỗi": "Download error report",
+  "Kiểm tra lại": "Validate again",
+  "Xác nhận nhập toàn bộ": "Confirm entire import",
+  "Dữ liệu đã thay đổi. Bấm Kiểm tra lại trước khi xác nhận.": "Data has changed. Validate again before confirming.",
+  "Các lần nhập gần đây": "Recent imports",
+  "Chưa có lần nhập nào.": "No imports yet.",
+  "Đã nhập": "Imported",
+  "Bản xem trước": "Preview",
+  "Hãy chọn file Excel": "Select an Excel file",
+  "Chỉ nhận file .xlsx": "Only .xlsx files are accepted",
+  "File tối đa 5 MB": "Maximum file size is 5 MB",
+  "Nhập Excel": "Import Excel",
+  "Vui lòng chọn thể loại.": "Please select a category.",
+  "Tìm thể loại bằng tiếng Anh hoặc tiếng Việt": "Find a category in English or Vietnamese",
+  "Ví dụ: Khoa học, Science, khoa hoc": "Example: Khoa học, Science, khoa hoc",
+  "Đang đối chiếu thể loại…": "Matching category…",
+  "Đã khớp thể loại có sẵn:": "Matched existing category:",
+  "Dùng thể loại này": "Use this category",
+  "Có nhiều thể loại tương đương. Hãy chọn thể loại đúng.": "Multiple equivalent categories exist. Choose the correct category.",
+  "Chưa khớp tên này. Hãy chọn thể loại có sẵn; hệ thống không tự tạo mới.": "No match found. Choose an existing category; no category is created automatically.",
+  "Các lựa chọn cần xác nhận:": "Choices requiring confirmation:",
   "Danh sách yêu thích": "Wishlist",
   "Thông báo": "Notifications",
   "Thông báo ({count} chưa đọc)": "Notifications ({count} unread)",
@@ -681,13 +822,15 @@ export function translate(text, language, parameters = {}) {
 const LanguageContext = createContext(null);
 
 export function LanguageProvider({ children }) {
-  const [language, setLanguage] = useState(() => localStorage.getItem("book-language") === "en" ? "en" : "vi");
+  const [language, setLanguage] = useState(() => { try { return localStorage.getItem("book-language") === "en" ? "en" : "vi"; } catch { return "vi"; } });
+  useEffect(()=>{const sync=event=>{if(event.key==="book-language"||event.key===null){try{setLanguage(localStorage.getItem("book-language")==="en"?"en":"vi");}catch{}}};window.addEventListener("storage",sync);return()=>window.removeEventListener("storage",sync);},[]);
   useEffect(() => {
     document.documentElement.lang = language;
     document.title = language === "vi" ? "Mộc — Nhà sách" : "Mộc — Bookstore";
   }, [language]);
   const changeLanguage = (next) => {
-    localStorage.setItem("book-language", next);
+    if(!["vi","en"].includes(next))return;
+    try { localStorage.setItem("book-language", next); } catch {}
     setLanguage(next);
     document.documentElement.lang = next;
   };
@@ -711,8 +854,10 @@ export function useLanguage() {
 }
 
 export function LanguageToggle() {
-  const { language, setLanguage } = useLanguage();
-  return <button className="language-toggle" type="button" onClick={() => setLanguage(language === "vi" ? "en" : "vi")} aria-label={language === "vi" ? "Switch to English" : "Chuyển sang tiếng Việt"} title={language === "vi" ? "Switch to English" : "Chuyển sang tiếng Việt"}>
-    <Languages size={15} /> {language === "vi" ? "EN" : "VI"}
-  </button>;
+  const {language,setLanguage,t}=useLanguage();
+  return <div className="language-switch" role="group" aria-label={t("Ngôn ngữ")}>
+    <Languages size={16} aria-hidden="true"/>
+    <button type="button" lang="vi" aria-label="Tiếng Việt" title="Tiếng Việt" aria-pressed={language==="vi"} onClick={()=>setLanguage("vi")}>VI</button>
+    <button type="button" lang="en" aria-label="English" title="English" aria-pressed={language==="en"} onClick={()=>setLanguage("en")}>EN</button>
+  </div>;
 }

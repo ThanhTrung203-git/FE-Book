@@ -1,0 +1,23 @@
+.admin-orders .admin-order-time-filters {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(155px,1fr));
+  align-items:end;
+  gap:12px;
+}
+.admin-orders .admin-order-time-filters > label { display:flex; flex-direction:column; align-items:stretch; gap:6px; min-width:0; }
+.admin-orders .admin-order-time-filters select,.admin-orders .admin-order-time-filters input {
+  width:100%;
+  min-width:0;
+  height:39px;
+  padding:0 10px;
+  border:1px solid #e3e3ea;
+  border-radius:7px;
+  background:white;
+  color:#55465f;
+  font:12px "Segoe UI",Tahoma,Arial,sans-serif;
+}
+.admin-order-filter-buttons { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.admin-order-filter-buttons button { display:inline-flex; align-items:center; gap:6px; min-height:39px; font-size:11px; }
+.admin-order-time-note { margin:0 0 14px; color:#a08aac; font-size:11px; line-height:1.7; }
+.admin-order-time-note span { display:block; color:#85708f; }
+@media(max-width:600px) { .admin-orders .admin-order-time-filters { grid-template-columns:minmax(0,1fr); } }

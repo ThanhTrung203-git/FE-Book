@@ -37,7 +37,7 @@ async function send(path, options, token) {
   return fetch(API + path, {
     method: options.method || "GET",
     headers: {
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.body && !(options.body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
       ...(!options.skipAuth && token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: options.body,
@@ -74,6 +74,7 @@ export async function api(path, options = {}) {
   }
 
   if (response.status === 204) return null;
+  if (response.ok && options.responseType === "blob") return response.blob();
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const error = new Error(data.message || "Yêu cầu thất bại.");

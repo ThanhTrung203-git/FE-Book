@@ -1,0 +1,87 @@
+:root {
+  --theme-page:#f7f7fb;
+  --theme-surface:#fff;
+  --theme-soft:#f4effa;
+  --theme-border:#e6dfef;
+  --theme-text:#4c3c58;
+  --theme-muted:#8c779c;
+  --theme-accent:#7956b5;
+  --theme-brand:#765bdd;
+}
+html[data-theme="dark"] {
+  color-scheme:dark;
+  --theme-page:#17141e;
+  --theme-surface:#231e2c;
+  --theme-soft:#2d2638;
+  --theme-border:#483c56;
+  --theme-text:#eee6f6;
+  --theme-muted:#b9aac8;
+  --theme-accent:#c8a6f3;
+  --theme-brand:#765bdd;
+}
+.preferences-dock {
+  position:fixed;
+  right:max(18px,env(safe-area-inset-right));
+  bottom:calc(18px + env(safe-area-inset-bottom));
+  z-index:1500;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:6px;
+  border:1px solid var(--theme-border);
+  border-radius:14px;
+  background:var(--theme-surface);
+  color:var(--theme-text);
+  box-shadow:0 5px 24px #20132d24;
+}
+.preferences-dock .theme-toggle,.language-switch button {
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  padding:0;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:var(--theme-muted);
+  cursor:pointer;
+  font:600 11px "Segoe UI",sans-serif;
+}
+.preferences-dock .theme-toggle:hover,.language-switch button:hover {
+  background:var(--theme-soft);
+  color:var(--theme-accent);
+}
+.language-switch { display:flex; align-items:center; gap:3px; color:var(--theme-muted); }
+.language-switch > svg { margin:0 4px; }
+.language-switch button[aria-pressed="true"] { background:var(--theme-soft); color:var(--theme-accent); }
+.preferences-divider { height:22px; width:1px; background:var(--theme-border); }
+.preferences-dock button:focus-visible { outline:2px solid var(--theme-accent); outline-offset:2px; }
+html { background:var(--theme-page); scrollbar-color:var(--theme-border) var(--theme-page); }
+html[data-theme="dark"] body { background:var(--theme-page); }
+html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder { color:#ac9cb9; opacity:1; }
+html[data-theme="dark"] input[type="checkbox"],html[data-theme="dark"] input[type="radio"] { accent-color:#a17ae3; }
+html[data-theme="dark"] :is(input,textarea,select):disabled { opacity:.6; }
+html[data-theme="dark"] .dashboard-chart-scroll svg line { stroke:var(--theme-border); }
+html[data-theme="dark"] .dashboard-chart-scroll svg text { fill:var(--theme-muted); }
+.admin-page-panel { padding-bottom:calc(90px + env(safe-area-inset-bottom)); }
+.account-content { padding-bottom:90px; }
+.mp-footer { padding-bottom:90px; }
+.cart-panel,.checkout-panel { padding-bottom:80px; }
+@media(max-width:600px){
+  .preferences-dock { right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); padding:5px; }
+  .preferences-dock .theme-toggle,.language-switch button { width:32px; height:32px; }
+}
+@media(prefers-reduced-motion:reduce) { .preferences-dock * { transition:none; } }
+
+.toast { bottom:calc(82px + env(safe-area-inset-bottom)); }
+.mp-back-top { bottom:calc(82px + env(safe-area-inset-bottom)); }
+
+html[data-theme="dark"] :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]):not([type="submit"]):not([type="button"]),select,textarea) {
+  background-color:var(--theme-surface);
+  color:var(--theme-text);
+}
+html[data-theme="dark"] input:-webkit-autofill {
+  -webkit-box-shadow:0 0 0 1000px var(--theme-surface) inset;
+  -webkit-text-fill-color:var(--theme-text);
+  caret-color:var(--theme-text);
+}
