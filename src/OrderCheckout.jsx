@@ -78,11 +78,17 @@ export function CartPanel({ cart, setCart, onClose, onCheckout }) {
 export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
   const { t, money } = useLanguage();
   const [form, setForm] = useState({
-    recipient_name: user?.full_name || "", recipient_phone: "", address_line: "",
+    recipient_name: user?.full_name || "", recipient_phone: user?.phone || "", address_line: "",
     to_province_id: null, to_province_name: "", to_ward_code: "", to_ward_name: "",
     to_district_name: "", is_new_to_address: true, payment_method: "cod",
   });
-  const addressTouched = useRef(false);
+  const [alternateAddress, setAlternateAddress] = useState(false);
+  const alternateAddressRef = useRef(false);
+  const profileAddress = useRef({
+    recipient_name: user?.full_name || "", recipient_phone: user?.phone || "",
+    address_line: "", to_province_id: null, to_province_name: "", to_ward_code: "",
+    to_ward_name: "", to_district_name: "", is_new_to_address: true,
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -90,11 +96,18 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
   const [quote, setQuote] = useState(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState("");
-  const set = (key, value) => {
-    if (["address_line", "to_province_id", "to_province_name", "to_ward_code", "to_ward_name", "to_district_name", "is_new_to_address"].includes(key)) {
-      addressTouched.current = true;
-    }
-    setForm((current) => ({ ...current, [key]: value }));
+  const set = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const toggleAlternateAddress = (enabled) => {
+    alternateAddressRef.current = enabled;
+    setAlternateAddress(enabled);
+    setForm((current) => ({
+      ...current,
+      ...(enabled ? {
+        recipient_name: "", recipient_phone: "", address_line: "",
+        to_province_id: null, to_province_name: "", to_ward_code: "",
+        to_ward_name: "", to_district_name: "", is_new_to_address: true,
+      } : profileAddress.current),
+    }));
   };
   const total = useMemo(() => cart.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0), [cart]);
   const itemKey = useMemo(() => JSON.stringify(cart.map((item) => ({ book_id: item.id, quantity: item.quantity }))), [cart]);
@@ -105,22 +118,22 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
       .then((result) => {
         if (!active || !result.data?.profile) return;
         const profile = result.data.profile;
-        setForm((current) => ({
-          ...current,
-          recipient_name: current.recipient_name === (user?.full_name || "")
-            ? profile.full_name || current.recipient_name : current.recipient_name,
-          recipient_phone: current.recipient_phone || profile.phone || "",
-          ...(addressTouched.current ? {} : {
-            address_line: profile.shipping_address || "",
-            to_province_id: profile.shipping_province_id ?? null,
-            to_province_name: profile.shipping_province_name || "",
-            to_ward_code: profile.shipping_ward_code || "",
-            to_ward_name: profile.shipping_ward_name || "",
-            to_district_name: profile.shipping_district_name || "",
-            is_new_to_address: profile.shipping_is_new_to_address == null
-              ? true : Boolean(profile.shipping_is_new_to_address),
-          }),
-        }));
+        const savedAddress = {
+          recipient_name: profile.full_name || user?.full_name || "",
+          recipient_phone: profile.phone || "",
+          address_line: profile.shipping_address || "",
+          to_province_id: profile.shipping_province_id ?? null,
+          to_province_name: profile.shipping_province_name || "",
+          to_ward_code: profile.shipping_ward_code || "",
+          to_ward_name: profile.shipping_ward_name || "",
+          to_district_name: profile.shipping_district_name || "",
+          is_new_to_address: profile.shipping_is_new_to_address == null
+            ? true : Boolean(profile.shipping_is_new_to_address),
+        };
+        profileAddress.current = savedAddress;
+        if (!alternateAddressRef.current) {
+          setForm((current) => ({ ...current, ...savedAddress }));
+        }
       })
       .catch(() => {});
     return () => { active = false; };
@@ -143,6 +156,13 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
 
   async function submit(event) {
     event.preventDefault(); setBusy(true); setError(""); setSuccess("");
+    if (![form.recipient_name, form.recipient_phone, form.address_line, form.to_province_name, form.to_ward_name]
+      .every((value) => String(value || "").trim())
+      || (!form.is_new_to_address && !String(form.to_district_name || "").trim())) {
+      setError(t("Thông tin giao hàng trong hồ sơ chưa đầy đủ. Hãy chọn Địa chỉ nhận hàng khác để nhập thông tin."));
+      setBusy(false);
+      return;
+    }
     const addressParts = [form.address_line.trim(), form.to_ward_name, !form.is_new_to_address && form.to_district_name, form.to_province_name].filter(Boolean);
     try {
       const result = await api("/orders", {
@@ -175,14 +195,16 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
     <section className="checkout-panel" role="dialog" aria-modal="true" aria-labelledby="checkout-title">
       <header><div><span className="store-kicker">{t("GIAO HÀNG TẬN NƠI")}</span><h2 id="checkout-title">{t("Thông tin đặt hàng")}</h2></div><button className="icon" onClick={onClose} aria-label={t("Đóng")}><X /></button></header>
       <div className="checkout-layout"><form className="checkout-form" onSubmit={submit}>
-        <label>{t("Người nhận")}<input required maxLength="255" value={form.recipient_name} onChange={(event) => set("recipient_name", event.target.value)} /></label>
-        <label>{t("Số điện thoại")}<input required type="tel" maxLength="20" placeholder="09xx xxx xxx" value={form.recipient_phone} onChange={(event) => set("recipient_phone", event.target.value)} /></label>
-        <label className="checkout-full">{t("Địa chỉ cụ thể")}<input required maxLength="1024" placeholder={t("Số nhà, tên đường")} value={form.address_line} onChange={(event) => set("address_line", event.target.value)} /></label>
+        <label>{t("Người nhận")}<input required disabled={!alternateAddress} maxLength="255" value={form.recipient_name} onChange={(event) => set("recipient_name", event.target.value)} /></label>
+        <label>{t("Số điện thoại")}<input required disabled={!alternateAddress} type="tel" maxLength="20" placeholder="09xx xxx xxx" value={form.recipient_phone} onChange={(event) => set("recipient_phone", event.target.value)} /></label>
+        <label className="checkout-full">{t("Địa chỉ cụ thể")}<input required disabled={!alternateAddress} maxLength="1024" placeholder={t("Số nhà, tên đường")} value={form.address_line} onChange={(event) => set("address_line", event.target.value)} /></label>
         <GhnAddressFields
           value={form}
           setValue={setForm}
           token={token}
-          onEdit={() => { addressTouched.current = true; }}
+          disabled={!alternateAddress}
+          alternateAddress={alternateAddress}
+          onAlternateAddressChange={toggleAlternateAddress}
         />
         <fieldset className="checkout-payment checkout-full" disabled={busy}>
           <legend>{t("Phương thức thanh toán")}</legend>

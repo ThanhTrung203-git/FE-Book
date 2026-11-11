@@ -102,7 +102,7 @@ export default function BookEditor({ book, cats, token, close, save, busy }) {
               : (form[key] ?? "")
           }
           disabled={disabled}
-          min={type === "number" ? (key === "price" ? 0 : 1) : undefined}
+          min={type === "number" ? (key === "price" ? 1000 : 1) : undefined}
           max={
             key === "publication_year"
               ? 9999

@@ -1252,6 +1252,11 @@ export default function Storefront({
           onClose={() => setCheckoutOpen(false)}
           onComplete={(order) => {
             setCart([]);
+            try {
+              localStorage.removeItem(cartStorageKey);
+            } catch {
+              // The in-memory cart is still cleared if browser storage is unavailable.
+            }
             setCheckoutOpen(false);
             setCartNotice({
               key: "Đặt hàng thành công: {code}",

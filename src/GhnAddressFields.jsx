@@ -16,6 +16,9 @@ export default function GhnAddressFields({
   prefix = "",
   profile = false,
   onEdit,
+  disabled = false,
+  alternateAddress = false,
+  onAlternateAddressChange,
 }) {
   const { t } = useLanguage();
   const keys = useMemo(() => ({
@@ -117,6 +120,7 @@ export default function GhnAddressFields({
         {provinces.length ? (
           <select
             required
+            disabled={disabled}
             value={provinceId}
             onChange={(event) => {
               const selectedId = event.target.value;
@@ -140,7 +144,7 @@ export default function GhnAddressFields({
         ) : (
           <input
             required
-            disabled={loadingProvinces}
+            disabled={disabled || loadingProvinces}
             value={value[keys.provinceName] || ""}
             onChange={(event) => {
               set(keys.provinceId, null);
@@ -159,7 +163,7 @@ export default function GhnAddressFields({
           <select
             required
             value={selectedWardValue || (!wardIsInList && value[keys.wardName] ? value[keys.wardName] : "")}
-            disabled={loadingWards}
+            disabled={disabled || loadingWards}
             onChange={(event) => {
               const ward = wards.find((item) =>
                 String(field(item, ["WardCode", "ward_code", "_id", "id"])) === event.target.value);
@@ -180,6 +184,7 @@ export default function GhnAddressFields({
         ) : (
           <input
             required
+            disabled={disabled}
             value={value[keys.wardName] || ""}
             onChange={(event) => {
               set(keys.wardName, event.target.value);
@@ -190,19 +195,31 @@ export default function GhnAddressFields({
         )}
       </label>
 
-      <label className="ghn-address-old">
-        <input
-          type="checkbox"
-          checked={!Boolean(value[keys.isNew] ?? true)}
-          onChange={(event) => set(keys.isNew, !event.target.checked)}
-        />
-        {t("Địa chỉ theo địa giới hành chính cũ")}
-      </label>
+      <div className="ghn-address-options">
+        {onAlternateAddressChange && <label className="ghn-address-old">
+          <input
+            type="checkbox"
+            checked={alternateAddress}
+            onChange={(event) => onAlternateAddressChange(event.target.checked)}
+          />
+          {t("Địa chỉ nhận hàng khác")}
+        </label>}
+        <label className="ghn-address-old">
+          <input
+            type="checkbox"
+            disabled={disabled}
+            checked={!Boolean(value[keys.isNew] ?? true)}
+            onChange={(event) => set(keys.isNew, !event.target.checked)}
+          />
+          {t("Địa chỉ quận/huyện cũ")}
+        </label>
+      </div>
       {!Boolean(value[keys.isNew] ?? true) && (
         <label className="ghn-address-district">
           {t("Quận / huyện")}
           <input
             required
+            disabled={disabled}
             value={value[keys.districtName] || ""}
             onChange={(event) => set(keys.districtName, event.target.value)}
             placeholder={t("Nhập quận / huyện")}
