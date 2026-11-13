@@ -84,7 +84,7 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
   });
   const [alternateAddress, setAlternateAddress] = useState(false);
   const alternateAddressRef = useRef(false);
-  const profileAddress = useRef({
+  const [profileAddress, setProfileAddress] = useState({
     recipient_name: user?.full_name || "", recipient_phone: user?.phone || "",
     address_line: "", to_province_id: null, to_province_name: "", to_ward_code: "",
     to_ward_name: "", to_district_name: "", is_new_to_address: true,
@@ -103,10 +103,10 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
     setForm((current) => ({
       ...current,
       ...(enabled ? {
-        recipient_name: "", recipient_phone: "", address_line: "",
+        address_line: "",
         to_province_id: null, to_province_name: "", to_ward_code: "",
         to_ward_name: "", to_district_name: "", is_new_to_address: true,
-      } : profileAddress.current),
+      } : profileAddress),
     }));
   };
   const total = useMemo(() => cart.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0), [cart]);
@@ -130,7 +130,7 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
           is_new_to_address: profile.shipping_is_new_to_address == null
             ? true : Boolean(profile.shipping_is_new_to_address),
         };
-        profileAddress.current = savedAddress;
+        setProfileAddress(savedAddress);
         if (!alternateAddressRef.current) {
           setForm((current) => ({ ...current, ...savedAddress }));
         }
@@ -156,23 +156,29 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
 
   async function submit(event) {
     event.preventDefault(); setBusy(true); setError(""); setSuccess("");
-    if (![form.recipient_name, form.recipient_phone, form.address_line, form.to_province_name, form.to_ward_name]
-      .every((value) => String(value || "").trim())
-      || (!form.is_new_to_address && !String(form.to_district_name || "").trim())) {
-      setError(t("Thông tin giao hàng trong hồ sơ chưa đầy đủ. Hãy chọn Địa chỉ nhận hàng khác để nhập thông tin."));
+    const shipping = alternateAddress ? form : profileAddress;
+    if (![profileAddress.recipient_name, profileAddress.recipient_phone].every((value) => String(value || "").trim())) {
+      setError(t("Vui lòng cập nhật tên và số điện thoại trong hồ sơ trước khi đặt hàng."));
       setBusy(false);
       return;
     }
-    const addressParts = [form.address_line.trim(), form.to_ward_name, !form.is_new_to_address && form.to_district_name, form.to_province_name].filter(Boolean);
+    if (![shipping.address_line, shipping.to_province_name, shipping.to_ward_name]
+      .every((value) => String(value || "").trim())
+      || (!shipping.is_new_to_address && !String(shipping.to_district_name || "").trim())) {
+      setError(t(alternateAddress ? "Vui lòng nhập đầy đủ thông tin và chọn địa chỉ nhận hàng mới." : "Thông tin giao hàng trong hồ sơ chưa đầy đủ. Hãy chọn Địa chỉ nhận hàng khác để nhập thông tin."));
+      setBusy(false);
+      return;
+    }
+    const addressParts = [shipping.address_line.trim(), shipping.to_ward_name, !shipping.is_new_to_address && shipping.to_district_name, shipping.to_province_name].filter(Boolean);
     try {
       const result = await api("/orders", {
         method: "POST", token,
         body: JSON.stringify({
-          recipient_name: form.recipient_name.trim(), recipient_phone: form.recipient_phone.trim(),
-          shipping_address: addressParts.join(", "), to_ward_name: form.to_ward_name,
-          to_province_name: form.to_province_name,
-          ...(form.is_new_to_address ? {} : { to_district_name: form.to_district_name.trim() }),
-          is_new_to_address: form.is_new_to_address,
+          recipient_name: profileAddress.recipient_name.trim(), recipient_phone: profileAddress.recipient_phone.trim(),
+          shipping_address: addressParts.join(", "), to_ward_name: shipping.to_ward_name,
+          to_province_name: shipping.to_province_name,
+          ...(shipping.is_new_to_address ? {} : { to_district_name: shipping.to_district_name.trim() }),
+          is_new_to_address: shipping.is_new_to_address,
           payment_method: form.payment_method,
           items: cart.map((item) => ({ book_id: item.id, quantity: item.quantity })),
           order_promotion_code: orderCode.trim() || null,
@@ -195,17 +201,20 @@ export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
     <section className="checkout-panel" role="dialog" aria-modal="true" aria-labelledby="checkout-title">
       <header><div><span className="store-kicker">{t("GIAO HÀNG TẬN NƠI")}</span><h2 id="checkout-title">{t("Thông tin đặt hàng")}</h2></div><button className="icon" onClick={onClose} aria-label={t("Đóng")}><X /></button></header>
       <div className="checkout-layout"><form className="checkout-form" onSubmit={submit}>
-        <label>{t("Người nhận")}<input required disabled={!alternateAddress} maxLength="255" value={form.recipient_name} onChange={(event) => set("recipient_name", event.target.value)} /></label>
-        <label>{t("Số điện thoại")}<input required disabled={!alternateAddress} type="tel" maxLength="20" placeholder="09xx xxx xxx" value={form.recipient_phone} onChange={(event) => set("recipient_phone", event.target.value)} /></label>
-        <label className="checkout-full">{t("Địa chỉ cụ thể")}<input required disabled={!alternateAddress} maxLength="1024" placeholder={t("Số nhà, tên đường")} value={form.address_line} onChange={(event) => set("address_line", event.target.value)} /></label>
-        <GhnAddressFields
-          value={form}
-          setValue={setForm}
-          token={token}
-          disabled={!alternateAddress}
-          alternateAddress={alternateAddress}
-          onAlternateAddressChange={toggleAlternateAddress}
-        />
+        <div className="checkout-address-heading checkout-full"><b>{t("Thông tin hiện tại")}</b></div>
+        <label>{t("Người nhận")}<input disabled value={profileAddress.recipient_name} /></label>
+        <label>{t("Số điện thoại")}<input disabled type="tel" value={profileAddress.recipient_phone} /></label>
+        <label className="checkout-full">{t("Địa chỉ cụ thể")}<input disabled value={profileAddress.address_line} /></label>
+        <GhnAddressFields value={profileAddress} setValue={setProfileAddress} token={token} disabled={alternateAddress} />
+        <label className="checkout-old-address">
+          <input type="checkbox" checked={alternateAddress} onChange={(event) => toggleAlternateAddress(event.target.checked)} aria-controls="checkout-alternate-address" />
+          {t("Địa chỉ nhận hàng khác")}
+        </label>
+        {alternateAddress && <div id="checkout-alternate-address" className="checkout-alternate-address checkout-full">
+          <div className="checkout-address-heading checkout-full"><b>{t("Địa chỉ nhận hàng khác")}</b></div>
+          <label className="checkout-full">{t("Địa chỉ cụ thể")}<input required maxLength="1024" placeholder={t("Số nhà, tên đường")} value={form.address_line} onChange={(event) => set("address_line", event.target.value)} /></label>
+          <GhnAddressFields value={form} setValue={setForm} token={token} />
+        </div>}
         <fieldset className="checkout-payment checkout-full" disabled={busy}>
           <legend>{t("Phương thức thanh toán")}</legend>
           <label className={form.payment_method === "cod" ? "payment-option is-selected" : "payment-option"}>

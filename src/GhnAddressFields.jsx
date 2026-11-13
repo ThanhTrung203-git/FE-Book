@@ -4,233 +4,131 @@ import { useLanguage } from "./i18n.jsx";
 
 function field(record, names) {
   for (const name of names) {
-    if (record?.[name] !== undefined && record[name] !== null) return record[name];
+    if (record?.[name] !== undefined && record[name] !== null) return String(record[name]);
   }
   return "";
 }
+const provinceIdOf = (item) => field(item, ["ProvinceID", "province_id", "_id", "id"]);
+const provinceNameOf = (item) => field(item, ["ProvinceName", "province_name", "name"]);
+const districtIdOf = (item) => field(item, ["DistrictID", "district_id", "_id", "id"]);
+const districtNameOf = (item) => field(item, ["DistrictName", "district_name", "name"]);
+const wardCodeOf = (item) => field(item, ["WardCode", "ward_code", "_id", "id"]);
+const wardNameOf = (item) => field(item, ["WardName", "ward_name", "name"]);
+const sameName = (a, b) => String(a || "").trim().toLocaleLowerCase("vi") === String(b || "").trim().toLocaleLowerCase("vi");
 
-export default function GhnAddressFields({
-  value,
-  setValue,
-  token,
-  prefix = "",
-  profile = false,
-  onEdit,
-  disabled = false,
-  alternateAddress = false,
-  onAlternateAddressChange,
-}) {
+export default function GhnAddressFields({ value, setValue, token, prefix = "", profile = false, onEdit, disabled = false }) {
   const { t } = useLanguage();
   const keys = useMemo(() => ({
-    provinceId: prefix ? `${prefix}province_id` : "to_province_id",
-    provinceName: prefix ? `${prefix}province_name` : "to_province_name",
-    wardCode: prefix ? `${prefix}ward_code` : "to_ward_code",
-    wardName: prefix ? `${prefix}ward_name` : "to_ward_name",
-    districtName: prefix ? `${prefix}district_name` : "to_district_name",
-    isNew: prefix ? `${prefix}is_new_to_address` : "is_new_to_address",
+    provinceId: prefix ? prefix + "province_id" : "to_province_id",
+    provinceName: prefix ? prefix + "province_name" : "to_province_name",
+    wardCode: prefix ? prefix + "ward_code" : "to_ward_code",
+    wardName: prefix ? prefix + "ward_name" : "to_ward_name",
+    districtName: prefix ? prefix + "district_name" : "to_district_name",
+    isNew: prefix ? prefix + "is_new_to_address" : "is_new_to_address",
   }), [prefix]);
+  const isNew = Boolean(value[keys.isNew] ?? true);
   const [provinces, setProvinces] = useState([]);
+  const [districts, setDistricts] = useState([]);
   const [wards, setWards] = useState([]);
-  const [provinceId, setProvinceId] = useState("");
   const [loadingProvinces, setLoadingProvinces] = useState(true);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [loadingWards, setLoadingWards] = useState(false);
-  const [error, setError] = useState("");
-
-  const set = (key, next) => {
+  const [provinceError, setProvinceError] = useState("");
+  const [districtError, setDistrictError] = useState("");
+  const [wardError, setWardError] = useState("");
+  const selectedProvince = provinces.find((item) => provinceIdOf(item) === String(value[keys.provinceId] || ""))
+    || provinces.find((item) => sameName(provinceNameOf(item), value[keys.provinceName]));
+  const provinceId = selectedProvince ? provinceIdOf(selectedProvince) : "";
+  const selectedDistrict = districts.find((item) => sameName(districtNameOf(item), value[keys.districtName]));
+  const districtId = selectedDistrict ? districtIdOf(selectedDistrict) : "";
+  const selectedWard = wards.find((item) => wardCodeOf(item) === String(value[keys.wardCode] || ""))
+    || wards.find((item) => sameName(wardNameOf(item), value[keys.wardName]));
+  const update = (patch) => {
+    if (disabled) return;
     onEdit?.();
-    setValue((current) => ({ ...current, [key]: next }));
+    setValue((current) => ({ ...current, ...patch }));
   };
 
   useEffect(() => {
     let active = true;
+    setProvinces([]);
     setLoadingProvinces(true);
-    api("/shipping/ghn/provinces", { token })
-      .then((result) => {
-        if (active) {
-          setProvinces(Array.isArray(result.data) ? result.data : []);
-          setError("");
-        }
-      })
-      .catch((requestError) => active && setError(requestError.message))
-      .finally(() => active && setLoadingProvinces(false));
+    setProvinceError("");
+    api("/shipping/ghn/provinces" + (isNew ? "" : "?legacy=true"), { token })
+      .then((result) => { if (active) setProvinces(Array.isArray(result.data) ? result.data : []); })
+      .catch((error) => { if (active) setProvinceError(error.message); })
+      .finally(() => { if (active) setLoadingProvinces(false); });
     return () => { active = false; };
-  }, [token]);
-
-  useEffect(() => {
-    if (!provinces.length) return;
-    const savedId = value[keys.provinceId];
-    const byId = provinces.find((item) =>
-      String(field(item, ["ProvinceID", "province_id", "_id", "id"])) === String(savedId || ""));
-    const byName = provinces.find((item) =>
-      field(item, ["ProvinceName", "province_name", "name"]).trim().toLocaleLowerCase("vi")
-      === String(value[keys.provinceName] || "").trim().toLocaleLowerCase("vi"));
-    const selected = byId || byName;
-    const selectedId = selected
-      ? String(field(selected, ["ProvinceID", "province_id", "_id", "id"]))
-      : "";
-    setProvinceId(selectedId);
-    if (selectedId && !savedId) {
-      setValue((current) => ({ ...current, [keys.provinceId]: Number(selectedId) }));
-    }
-  }, [provinces, keys.provinceId, keys.provinceName, value[keys.provinceId], value[keys.provinceName]]);
+  }, [token, isNew]);
 
   useEffect(() => {
     let active = true;
-    if (!provinceId) {
-      setWards([]);
+    setDistricts([]);
+    setDistrictError("");
+    if (isNew || !provinceId) {
+      setLoadingDistricts(false);
+      return () => { active = false; };
+    }
+    setLoadingDistricts(true);
+    api("/shipping/ghn/provinces/" + encodeURIComponent(provinceId) + "/districts", { token })
+      .then((result) => { if (active) setDistricts(Array.isArray(result.data) ? result.data : []); })
+      .catch((error) => { if (active) setDistrictError(error.message); })
+      .finally(() => { if (active) setLoadingDistricts(false); });
+    return () => { active = false; };
+  }, [provinceId, isNew, token]);
+
+  useEffect(() => {
+    let active = true;
+    setWards([]);
+    setWardError("");
+    if (!provinceId || (!isNew && !districtId)) {
       setLoadingWards(false);
       return () => { active = false; };
     }
     setLoadingWards(true);
-    api(`/shipping/ghn/provinces/${encodeURIComponent(provinceId)}/wards`, { token })
-      .then((result) => {
-        if (active) {
-          setWards(Array.isArray(result.data) ? result.data : []);
-          setError("");
-        }
-      })
-      .catch((requestError) => active && setError(requestError.message))
-      .finally(() => active && setLoadingWards(false));
+    const path = isNew ? "provinces/" + encodeURIComponent(provinceId) : "districts/" + encodeURIComponent(districtId);
+    api("/shipping/ghn/" + path + "/wards", { token })
+      .then((result) => { if (active) setWards(Array.isArray(result.data) ? result.data : []); })
+      .catch((error) => { if (active) setWardError(error.message); })
+      .finally(() => { if (active) setLoadingWards(false); });
     return () => { active = false; };
-  }, [provinceId, token]);
+  }, [provinceId, districtId, isNew, token]);
 
-  const selectedWardCode = String(value[keys.wardCode] || "");
-  const matchingWard = wards.find((item) =>
-    String(field(item, ["WardCode", "ward_code", "_id", "id"])) === selectedWardCode
-    || field(item, ["WardName", "ward_name", "name"]).trim().toLocaleLowerCase("vi")
-      === String(value[keys.wardName] || "").trim().toLocaleLowerCase("vi"));
-  const wardIsInList = Boolean(matchingWard);
-  const selectedWardValue = matchingWard
-    ? String(field(matchingWard, ["WardCode", "ward_code", "_id", "id"]) || field(matchingWard, ["WardName", "ward_name", "name"]))
-    : "";
-
-  useEffect(() => {
-    const matchedCode = matchingWard
-      ? String(field(matchingWard, ["WardCode", "ward_code", "_id", "id"]))
-      : "";
-    if (matchedCode && matchedCode !== selectedWardCode) {
-      setValue((current) => ({ ...current, [keys.wardCode]: matchedCode }));
-    }
-  }, [matchingWard, selectedWardCode, keys.wardCode, setValue]);
-
-  return (
-    <div className={`ghn-address-fields ${profile ? "profile-address-fields" : "checkout-address-fields"}`}>
-      <label>
-        {t("Tỉnh / thành phố")}
-        {provinces.length ? (
-          <select
-            required
-            disabled={disabled}
-            value={provinceId}
-            onChange={(event) => {
-              const selectedId = event.target.value;
-              const province = provinces.find((item) =>
-                String(field(item, ["ProvinceID", "province_id", "_id", "id"])) === selectedId);
-              setProvinceId(selectedId);
-              onEdit?.();
-              set(keys.provinceId, selectedId ? Number(selectedId) : null);
-              set(keys.provinceName, field(province, ["ProvinceName", "province_name", "name"]));
-              set(keys.wardCode, "");
-              set(keys.wardName, "");
-              set(keys.districtName, "");
-            }}
-          >
-            <option value="">{t("Chọn tỉnh / thành phố")}</option>
-            {provinces.map((item) => {
-              const id = field(item, ["ProvinceID", "province_id", "_id", "id"]);
-              return <option key={id} value={id}>{field(item, ["ProvinceName", "province_name", "name"])}</option>;
-            })}
-          </select>
-        ) : (
-          <input
-            required
-            disabled={disabled || loadingProvinces}
-            value={value[keys.provinceName] || ""}
-            onChange={(event) => {
-              set(keys.provinceId, null);
-              set(keys.provinceName, event.target.value);
-              set(keys.wardCode, "");
-              set(keys.wardName, "");
-            }}
-            placeholder={loadingProvinces ? t("Đang tải…") : t("Nhập tỉnh / thành phố")}
-          />
-        )}
-      </label>
-
-      <label>
-        {t("Phường / xã")}
-        {provinceId && (loadingWards || wards.length) ? (
-          <select
-            required
-            value={selectedWardValue || (!wardIsInList && value[keys.wardName] ? value[keys.wardName] : "")}
-            disabled={disabled || loadingWards}
-            onChange={(event) => {
-              const ward = wards.find((item) =>
-                String(field(item, ["WardCode", "ward_code", "_id", "id"])) === event.target.value);
-              set(keys.wardCode, String(field(ward, ["WardCode", "ward_code", "_id", "id"])));
-              set(keys.wardName, field(ward, ["WardName", "ward_name", "name"]));
-            }}
-          >
-            <option value="">{loadingWards ? t("Đang tải…") : t("Chọn phường / xã")}</option>
-            {value[keys.wardName] && !wardIsInList && (
-              <option value={value[keys.wardName]}>{value[keys.wardName]} · {t("địa chỉ đã lưu")}</option>
-            )}
-            {wards.map((item) => {
-              const code = field(item, ["WardCode", "ward_code", "_id", "id"]);
-              const name = field(item, ["WardName", "ward_name", "name"]);
-              return <option key={code || name} value={code || name}>{name}</option>;
-            })}
-          </select>
-        ) : (
-          <input
-            required
-            disabled={disabled}
-            value={value[keys.wardName] || ""}
-            onChange={(event) => {
-              set(keys.wardName, event.target.value);
-              set(keys.wardCode, "");
-            }}
-            placeholder={loadingProvinces || loadingWards ? t("Đang tải…") : t("Nhập phường / xã")}
-          />
-        )}
-      </label>
-
-      <div className="ghn-address-options">
-        {onAlternateAddressChange && <label className="ghn-address-old">
-          <input
-            type="checkbox"
-            checked={alternateAddress}
-            onChange={(event) => onAlternateAddressChange(event.target.checked)}
-          />
-          {t("Địa chỉ nhận hàng khác")}
-        </label>}
-        <label className="ghn-address-old">
-          <input
-            type="checkbox"
-            disabled={disabled}
-            checked={!Boolean(value[keys.isNew] ?? true)}
-            onChange={(event) => set(keys.isNew, !event.target.checked)}
-          />
-          {t("Địa chỉ quận/huyện cũ")}
-        </label>
-      </div>
-      {!Boolean(value[keys.isNew] ?? true) && (
-        <label className="ghn-address-district">
-          {t("Quận / huyện")}
-          <input
-            required
-            disabled={disabled}
-            value={value[keys.districtName] || ""}
-            onChange={(event) => set(keys.districtName, event.target.value)}
-            placeholder={t("Nhập quận / huyện")}
-          />
-        </label>
-      )}
-      {error && (
-        <p className="checkout-hint ghn-address-error">
-          {t("Không tải được danh sách GHN; bạn có thể nhập địa chỉ bằng tay.")} {t(error)}
-        </p>
-      )}
-    </div>
-  );
+  return <div className={"ghn-address-fields " + (profile ? "profile-address-fields" : "checkout-address-fields")}>
+    <label>{t("Tỉnh / thành phố")}
+      <select required disabled={disabled || loadingProvinces || !provinces.length} value={provinceId || (disabled ? value[keys.provinceName] || "" : "")} onChange={(event) => {
+        const province = provinces.find((item) => provinceIdOf(item) === event.target.value);
+        update({ [keys.provinceId]: province ? Number(provinceIdOf(province)) : null, [keys.provinceName]: provinceNameOf(province), [keys.districtName]: "", [keys.wardCode]: "", [keys.wardName]: "" });
+      }}>
+        <option value="">{t(loadingProvinces ? "Đang tải…" : "Chọn tỉnh / thành phố")}</option>
+        {disabled && !selectedProvince && value[keys.provinceName] && <option value={value[keys.provinceName]}>{value[keys.provinceName]}</option>}
+        {provinces.map((item) => <option key={provinceIdOf(item)} value={provinceIdOf(item)}>{provinceNameOf(item)}</option>)}
+      </select>
+    </label>
+    {!isNew && <label>{t("Quận / huyện")}
+      <select required disabled={disabled || !provinceId || loadingDistricts || !districts.length} value={districtId || (disabled ? value[keys.districtName] || "" : "")} onChange={(event) => {
+        const district = districts.find((item) => districtIdOf(item) === event.target.value);
+        update({ [keys.districtName]: districtNameOf(district), [keys.wardCode]: "", [keys.wardName]: "" });
+      }}>
+        <option value="">{t(loadingDistricts ? "Đang tải…" : "Chọn quận / huyện")}</option>
+        {disabled && !selectedDistrict && value[keys.districtName] && <option value={value[keys.districtName]}>{value[keys.districtName]}</option>}
+        {districts.map((item) => <option key={districtIdOf(item)} value={districtIdOf(item)}>{districtNameOf(item)}</option>)}
+      </select>
+    </label>}
+    <label>{t("Phường / xã")}
+      <select required disabled={disabled || !provinceId || (!isNew && !districtId) || loadingWards || !wards.length} value={selectedWard ? wardCodeOf(selectedWard) : (disabled ? value[keys.wardName] || "" : "")} onChange={(event) => {
+        const ward = wards.find((item) => wardCodeOf(item) === event.target.value);
+        update({ [keys.wardCode]: wardCodeOf(ward), [keys.wardName]: wardNameOf(ward) });
+      }}>
+        <option value="">{t(loadingWards ? "Đang tải…" : "Chọn phường / xã")}</option>
+        {disabled && !selectedWard && value[keys.wardName] && <option value={value[keys.wardName]}>{value[keys.wardName]}</option>}
+        {wards.map((item) => <option key={wardCodeOf(item)} value={wardCodeOf(item)}>{wardNameOf(item)}</option>)}
+      </select>
+    </label>
+    <div className="ghn-address-options"><label className="ghn-address-old">
+      <input type="checkbox" disabled={disabled} checked={!isNew} onChange={(event) => update({ [keys.isNew]: !event.target.checked, [keys.provinceId]: null, [keys.provinceName]: "", [keys.districtName]: "", [keys.wardCode]: "", [keys.wardName]: "" })} />
+      {t("Địa chỉ quận/huyện cũ")}
+    </label></div>
+    {(provinceError || districtError || wardError) && <p role="alert" className="checkout-hint ghn-address-error">{t("Không tải được danh sách địa chỉ GHN. Vui lòng thử lại sau.")} {t(provinceError || districtError || wardError)}</p>}
+  </div>;
 }

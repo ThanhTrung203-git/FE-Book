@@ -1562,3 +1562,8 @@ th:first-child {
 .customer-order-progress li.is-current>b{font-weight:700}
 .customer-order-progress.progress-cancelled>p{color:#a6424c}
 @media(max-width:640px){.customer-order-filters{grid-template-columns:1fr;padding:12px}.customer-order-filters .order-search-field{grid-column:auto}.orders-results{flex-direction:column;gap:4px}.customer-order-card .order-card-head{flex-wrap:wrap}.customer-order-progress li{font-size:9px}.payment-result-notice{padding:12px;gap:9px}}
+
+.checkout-alternate-address { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-top: 16px; border-top: 1px solid #e3e3ea; }
+.checkout-alternate-address > label { display: flex; flex-direction: column; gap: 6px; font-size: 11px; font-weight: 600; }
+.checkout-address-heading { font-size: 12px; }
+@media (max-width: 700px) { .checkout-alternate-address { grid-template-columns: minmax(0, 1fr); } }

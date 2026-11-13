@@ -1,3 +1,5 @@
+import PriceRangeFilter, { priceRangeLabel } from "./PriceRangeFilter.jsx";
+import StoreSearch from "./StoreSearch.jsx";
 import { BookEngagement, CustomerActivityNav } from "./CustomerFeatures.jsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -34,12 +36,7 @@ import "./promotions.css";
 const API = (
   import.meta.env.VITE_API_URL || "http://localhost:3000/api"
 ).replace(/\/$/, "");
-const PRICE_RANGES = [
-  { value: "", label: "Tất cả mức giá" },
-  { value: "0:100000", label: "Dưới 100.000 ₫" },
-  { value: "100000:200000", label: "100.000 – 200.000 ₫" },
-  { value: "200000:", label: "Từ 200.000 ₫" },
-];
+
 
 async function getJson(path, signal) {
   const response = await fetch(API + path, { signal });
@@ -300,7 +297,7 @@ export default function Storefront({
   onOpenOrder,
   focusBookId,
 }) {
-  const { t, categoryLabel } = useLanguage();
+  const { t, money, categoryLabel } = useLanguage();
   const [books, setBooks] = useState([]);
   const [featured, setFeatured] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -309,6 +306,7 @@ export default function Storefront({
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [searchHelp, setSearchHelp] = useState(null);
   const [category, setCategory] = useState("");
   const [priceRange, setPriceRange] = useState("");
   const [inStock, setInStock] = useState(false);
@@ -472,18 +470,22 @@ export default function Storefront({
     if (inStock) params.set("in_stock", "1");
     setLoading(true);
     setError("");
-    getJson(`/books?${params}`, controller.signal)
-      .then((result) => {
-        setBooks(result.data || []);
-        setMeta(result.meta || { page, limit: 12, total: 0 });
-      })
-      .catch((error) => {
-        if (error.name !== "AbortError") setError(error.message);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
+    const requestTimer = window.setTimeout(() => {
+      getJson(`/books?${params}`, controller.signal)
+        .then((result) => {
+          if (controller.signal.aborted) return;
+          setSearchHelp(result.search_help || null);
+          setBooks(result.data || []);
+          setMeta(result.meta || { page, limit: 12, total: 0 });
+        })
+        .catch((error) => {
+          if (error.name !== "AbortError") setError(error.message);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setLoading(false);
+        });
+    }, 200);
+    return () => { window.clearTimeout(requestTimer); controller.abort(); };
   }, [page, search, category, priceRange, inStock, sort, reloadCount]);
 
   function scrollToCatalog() {
@@ -504,11 +506,14 @@ export default function Storefront({
     setSort("newest");
     setPage(1);
   }
-  function submitSearch(event) {
-    event.preventDefault();
-    setSearch(searchInput.trim());
+  function submitSearch(term) {
+    setSearchInput(term);
+    setSearch(term);
     setPage(1);
     scrollToCatalog();
+  }
+  function clearSearchFilters() {
+    setCategory(''); setPriceRange(''); setInStock(false); setPage(1);
   }
   const closeDetails = useCallback(() => {
     detailRequest.current?.abort();
@@ -603,34 +608,9 @@ export default function Storefront({
             </i>
             mộc<span>.</span>
           </a>
-          <form className="mp-search" role="search" onSubmit={submitSearch}>
-            <Search size={20} />
-            <input
-              aria-label={t("Tìm sách")}
-              placeholder={t("Tìm cuốn sách bạn muốn đọc…")}
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-            />
-            {searchInput && (
-              <button
-                type="button"
-                className="mp-search-clear"
-                onClick={() => {
-                  setSearchInput("");
-                  if (search) {
-                    setSearch("");
-                    setPage(1);
-                  }
-                }}
-                aria-label={t("Xóa tìm kiếm")}
-              >
-                <X size={16} />
-              </button>
-            )}
-            <button className="mp-search-submit" type="submit">
-              {t("Tìm kiếm")}
-            </button>
-          </form>
+          <StoreSearch key={user?.id || 'guest'} storageKey={'book-search-history-' + (user?.id || 'guest')}
+            value={searchInput} submittedSearch={search} onChange={setSearchInput} onSearch={submitSearch}
+            onClear={() => { setSearchInput(''); setSearch(''); setPage(1); }} />
           <div className="store-header-actions mp-header-actions">
 
             {token && user?.role === "customer" ? (
@@ -935,24 +915,7 @@ export default function Storefront({
                   </button>
                 )}
               </div>
-              <fieldset className="mp-filter-group">
-                <legend>{t("Khoảng giá")}</legend>
-                {PRICE_RANGES.map((range) => (
-                  <label className="mp-radio" key={range.value}>
-                    <input
-                      type="radio"
-                      name="price-range"
-                      value={range.value}
-                      checked={priceRange === range.value}
-                      onChange={() => {
-                        setPriceRange(range.value);
-                        setPage(1);
-                      }}
-                    />
-                    <span>{t(range.label)}</span>
-                  </label>
-                ))}
-              </fieldset>
+              <PriceRangeFilter value={priceRange} onChange={(value) => { setPriceRange(value); setPage(1); }} />
               <div className="mp-filter-group">
                 <h4>{t("Tình trạng")}</h4>
                 <label className="mp-radio">
@@ -1035,10 +998,7 @@ export default function Storefront({
                         setPage(1);
                       }}
                     >
-                      {t(
-                        PRICE_RANGES.find((range) => range.value === priceRange)
-                          .label,
-                      )}
+                      {priceRangeLabel(priceRange, money, t)}
                       <X size={13} />
                     </button>
                   )}
@@ -1094,6 +1054,15 @@ export default function Storefront({
                         "Thử đổi từ khóa hoặc bớt bộ lọc để khám phá thêm nhé.",
                       )}
                     </p>
+                    {search && searchHelp?.unfiltered_total > 0 && <div className="mp-search-help" role="status">
+                      <p>{t('Có {count} sách phù hợp ngoài bộ lọc hiện tại.', { count: searchHelp.unfiltered_total })}</p>
+                      <button className="secondary" onClick={clearSearchFilters}>{t('Bỏ bộ lọc, giữ từ khóa')}</button>
+                    </div>}
+                    {search && searchHelp?.suggestions?.length > 0 && <div className="mp-search-help">
+                      <b>{t('Có phải bạn muốn tìm?')}</b>
+                      <div className="mp-search-suggestions">{searchHelp.suggestions.map((item) => <button key={item.title} className="secondary" onClick={() => submitSearch(item.title)}>{item.title}</button>)}</div>
+                      {activeFilterCount > 0 && <small>{t('Các bộ lọc hiện tại vẫn được giữ nguyên.')}</small>}
+                    </div>}
                     <button className="primary" onClick={resetFilters}>
                       {t("Xem tất cả sách")}
                     </button>

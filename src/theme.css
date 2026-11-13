@@ -22,7 +22,7 @@ html[data-theme="dark"] {
 .preferences-dock {
   position:fixed;
   right:max(18px,env(safe-area-inset-right));
-  bottom:calc(18px + env(safe-area-inset-bottom));
+  top:calc(18px + env(safe-area-inset-top));
   z-index:1500;
   display:flex;
   align-items:center;
@@ -68,7 +68,7 @@ html[data-theme="dark"] .dashboard-chart-scroll svg text { fill:var(--theme-mute
 .mp-footer { padding-bottom:90px; }
 .cart-panel,.checkout-panel { padding-bottom:80px; }
 @media(max-width:600px){
-  .preferences-dock { right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); padding:5px; }
+  .preferences-dock { right:12px; top:calc(12px + env(safe-area-inset-top)); padding:5px; }
   .preferences-dock .theme-toggle,.language-switch button { width:32px; height:32px; }
 }
 @media(prefers-reduced-motion:reduce) { .preferences-dock * { transition:none; } }

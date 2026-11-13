@@ -522,6 +522,16 @@ html[data-theme="dark"] .ghn-address-fields select:focus {
   border-color: #7562bc;
   box-shadow: 0 0 0 3px #00000015
 }
+html[data-theme="dark"] .ghn-address-options .ghn-address-old {
+  color: #eee6f6
+}
+html[data-theme="dark"] .checkout-form input:disabled,
+html[data-theme="dark"] .checkout-form select:disabled,
+html[data-theme="dark"] .ghn-address-fields input:disabled,
+html[data-theme="dark"] .ghn-address-fields select:disabled {
+  background: #292532;
+  color: #bcb1c9
+}
 html[data-theme="dark"] .order-price-summary {border-top:1px solid #473d57
 }
 html[data-theme="dark"] .order-price-summary .order-price-total {border-top:1px solid #473d57;color:#eee6f6
@@ -602,6 +612,8 @@ html[data-theme="dark"] .customer-order-progress li.is-current {color:#ad9de6
 html[data-theme="dark"] .customer-order-progress li.is-current>span {border-color:#7662bc;color:#ffffff;box-shadow:0 0 0 3px #30293d
 }
 html[data-theme="dark"] .customer-order-progress.progress-cancelled>p {color:#dca7ad
+}
+html[data-theme="dark"] .checkout-alternate-address { border-top: 1px solid #3d3d57
 }
 /* ui.css */
 html[data-theme="dark"] .language-toggle {
@@ -1572,4 +1584,6 @@ html[data-theme="dark"] .mp-description p {
   html[data-theme="dark"] .mp-mobile-filter b {
     background: #2c1e38
   }
+}
+html[data-theme="dark"] .mp-search-history { box-shadow: 0 12px 30px #00000024
 }

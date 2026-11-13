@@ -804,6 +804,22 @@ const shipmentStatuses = {
   "Token is not valid": "Token GHN không hợp lệ. Kiểm tra cấu hình tài khoản giao hàng.",
   "Failed to fetch": "Không kết nối được máy chủ. Vui lòng thử lại.",
 };
+Object.assign(dictionary, {
+  "Không giới hạn": "No limit",
+  "Giá thấp nhất": "Minimum price",
+  "Giá cao nhất": "Maximum price",
+  "Từ": "From",
+  "Đến": "To",
+  "Kéo hai đầu để chọn khoảng giá. Mức cuối không giới hạn giá.": "Drag both handles to choose a price range. The final position has no upper limit.",
+  "Lịch sử tìm kiếm": "Recent searches",
+  "Xóa lịch sử": "Clear history",
+  "Xóa từ khóa {term}": "Remove search {term}",
+  "Có {count} sách phù hợp ngoài bộ lọc hiện tại.": "{count} matching books are available outside your current filters.",
+  "Bỏ bộ lọc, giữ từ khóa": "Clear filters, keep search",
+  "Có phải bạn muốn tìm?": "Did you mean?",
+  "Các bộ lọc hiện tại vẫn được giữ nguyên.": "Your current filters are kept.",
+  "Từ khóa tìm kiếm tối đa 160 ký tự": "Search terms must be 160 characters or fewer",
+});
 const reverseDictionary = Object.fromEntries(Object.entries(dictionary).map(([vi, en]) => [en, vi]));
 
 export function translate(text, language, parameters = {}) {
