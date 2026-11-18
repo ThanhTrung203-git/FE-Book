@@ -8,8 +8,8 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { api } from "./api.js";
-import { useLanguage } from "./i18n.jsx";
+import { api } from "../shared/api.js";
+import { useLanguage } from "../shared/i18n.jsx";
 import { catalogEntities } from "./catalogEntities.js";
 
 const unique = (rows) => [

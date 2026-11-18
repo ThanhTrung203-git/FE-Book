@@ -1,5 +1,5 @@
-import { BulkPanel, BulkCheckbox, BulkCreateNames, useBulkSelection } from "./BulkActions.jsx";
-import { useLanguage } from "./i18n.jsx";
+import { BulkPanel, BulkCheckbox, BulkCreateNames, useBulkSelection } from "../shared/BulkActions.jsx";
+import { useLanguage } from "../shared/i18n.jsx";
 import { useCallback, useEffect, useState } from "react";
 import {
   Boxes,

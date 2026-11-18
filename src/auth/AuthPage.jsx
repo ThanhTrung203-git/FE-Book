@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { ArrowRight, BookOpen, ShieldCheck, Store, TriangleAlert } from "lucide-react";
-import { useLanguage } from "./i18n.jsx";
+import { useLanguage } from "../shared/i18n.jsx";
 
-export function AuthPage({ onLogin, onRegister, onBack }) {
+export function AuthPage({ onLogin, onRegister, onResendRegistration, onVerifyRegistration, onBack }) {
   const { t } = useLanguage();
   const [mode, setMode] = useState("login");
   const [role, setRole] = useState("customer");
@@ -10,6 +10,8 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
   const set = (key, value) => setForm((old) => ({ ...old, [key]: value }));
   async function submit(event) {
     event.preventDefault();
@@ -18,16 +20,39 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
     setMessage("");
     try {
       if (mode === "register") {
-        await onRegister({
-          full_name: form.full_name.trim(),
-          email: form.email.trim(),
-          password: form.password,
-        });
-        setMode("login");
-        setRole("customer");
-        setForm((old) => ({ ...old, password: "" }));
-        setMessage("Đăng ký thành công. Bạn có thể đăng nhập.");
+        if (otpSent) {
+          await onVerifyRegistration({ email: form.email.trim(), otp });
+          setMode("login");
+          setRole("customer");
+          setOtpSent(false);
+          setOtp("");
+          setForm((old) => ({ ...old, password: "" }));
+          setMessage("Xác minh email thành công. Bạn có thể đăng nhập.");
+        } else {
+          await onRegister({
+            full_name: form.full_name.trim(),
+            email: form.email.trim(),
+            password: form.password,
+          });
+          setOtpSent(true);
+          setOtp("");
+          setForm((old) => ({ ...old, password: "" }));
+          setMessage("Mã xác minh đã được gửi đến email của bạn. Hãy nhập mã gồm 6 chữ số.");
+        }
       } else await onLogin(form.email.trim(), form.password, role);
+    } catch (err) {
+      setError(t(err.message));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function resendOtp() {
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      await onResendRegistration({ email: form.email.trim() });
+      setMessage("Mã xác minh mới đã được gửi đến email của bạn.");
     } catch (err) {
       setError(t(err.message));
     } finally {
@@ -104,7 +129,7 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
                 : t("Đăng nhập để cập nhật hồ sơ của bạn.")}
           </p>
           <form onSubmit={submit}>
-            {mode === "register" && (
+            {mode === "register" && !otpSent && (
               <>
                 <label htmlFor="register-name">{t("Họ và tên")}</label>
                 <input
@@ -126,24 +151,41 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
               placeholder="ban@example.com"
               value={form.email}
               onChange={(e) => set("email", e.target.value)}
+              readOnly={mode === "register" && otpSent}
               required
             />
-            <label htmlFor="auth-password">{t("Mật khẩu")}</label>
-            <input
-              id="auth-password"
-              type="password"
-              minLength={mode === "register" ? 8 : undefined}
-              maxLength="200"
-              autoComplete={
-                mode === "register" ? "new-password" : "current-password"
-              }
-              placeholder={
-                mode === "register" ? t("Tối thiểu 8 ký tự") : t("Nhập mật khẩu")
-              }
-              value={form.password}
-              onChange={(e) => set("password", e.target.value)}
-              required
-            />
+            {mode === "register" && otpSent ? (
+              <>
+                <label htmlFor="register-otp">{t("Mã OTP")}</label>
+                <input
+                  id="register-otp"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="[0-9]{6}"
+                  maxLength="6"
+                  placeholder={t("Nhập mã 6 chữ số")}
+                  value={otp}
+                  onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                  required
+                />
+              </>
+            ) : (
+              <>
+                <label htmlFor="auth-password">{t("Mật khẩu")}</label>
+                <input
+                  id="auth-password"
+                  type="password"
+                  minLength={mode === "register" ? 8 : undefined}
+                  maxLength="200"
+                  autoComplete={mode === "register" ? "new-password" : "current-password"}
+                  placeholder={mode === "register" ? t("Tối thiểu 8 ký tự") : t("Nhập mật khẩu")}
+                  value={form.password}
+                  onChange={(e) => set("password", e.target.value)}
+                  required
+                />
+              </>
+            )}
             {error && (
               <p className="error">
                 <TriangleAlert size={15} />
@@ -155,10 +197,15 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
               {busy
                 ? t("Đang xử lý…")
                 : mode === "register"
-                  ? t("Tạo tài khoản")
+                  ? otpSent ? t("Xác minh và tạo tài khoản") : t("Gửi mã xác minh")
                   : t("Đăng nhập")}
               　→
             </button>
+            {mode === "register" && otpSent && (
+              <button type="button" className="secondary wide" onClick={resendOtp} disabled={busy}>
+                {t("Gửi lại mã OTP")}
+              </button>
+            )}
           </form>
           <div className="auth-links">
             {mode === "login" && role === "customer" && (
@@ -166,6 +213,8 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
                 type="button"
                 onClick={() => {
                   setMode("register");
+                  setOtpSent(false);
+                  setOtp("");
                   setError("");
                   setMessage("");
                 }}
@@ -178,6 +227,8 @@ export function AuthPage({ onLogin, onRegister, onBack }) {
                 onClick={() => {
                   setMode("login");
                   setRole("customer");
+                  setOtpSent(false);
+                  setOtp("");
                   setError("");
                   setMessage("");
                 }}

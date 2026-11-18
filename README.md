@@ -18,10 +18,22 @@ Hiển thị ở mọi trang, gồm đăng nhập/đăng ký, cửa hàng, tài 
 - Ảnh bìa và ảnh thật không bị đảo màu; màu trạng thái xanh/đỏ vẫn phân biệt.
 - Áp dụng giao diện đã lưu từ head trước khi React tải để giảm chớp nền sáng.
 
-Bảng màu darkPalette.css được tạo từ stylesheet nguồn bằng npm run theme:generate.
-Chỉnh quy tắc màu tại scripts/theme-colors.mjs hoặc stylesheet gốc rồi tạo lại.
+Bảng màu src/theme/darkPalette.css được tạo từ các stylesheet nguồn bằng npm run theme:generate.
+Chỉnh quy tắc màu tại scripts/theme-colors.mjs hoặc stylesheet trong src rồi tạo lại.
 Lệnh npm run dev và npm run build tự tạo bảng màu trước khi chạy.
-theme.css chứa cụm điều khiển và các chi tiết bổ sung theo giao diện.
+src/theme/theme.css chứa cụm điều khiển và các chi tiết bổ sung theo giao diện.
+
+## Cấu trúc mã nguồn
+
+- `src/admin`: dashboard và quản lý khuyến mãi.
+- `src/auth`: đăng nhập và đăng ký.
+- `src/catalog`: sản phẩm, thể loại, tác giả, nhà xuất bản và nhập Excel.
+- `src/customer`: hồ sơ, địa chỉ GHN, yêu thích, thông báo và đánh giá.
+- `src/orders`: giỏ hàng, đặt hàng, lịch sử đơn và các tiện ích đơn hàng.
+- `src/shared`: gọi API, ngôn ngữ và thành phần dùng chung.
+- `src/storefront`: trang cửa hàng.
+- `src/theme`, `src/styles`: giao diện sáng/tối và stylesheet nền.
+- `src/App.jsx`, `src/main.jsx`: điều phối ứng dụng và khởi chạy React.
 
 Kiểm thử:
 - node --test tests/theme-preferences.test.js tests/theme-colors.test.js

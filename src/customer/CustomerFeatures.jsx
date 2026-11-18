@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, Heart, Star, X, LoaderCircle, Clock3, CheckCheck } from "lucide-react";
-import { api } from "./api.js";
-import { useLanguage } from "./i18n.jsx";
+import { api } from "../shared/api.js";
+import { useLanguage } from "../shared/i18n.jsx";
 import "./customerFeatures.css";
 
 const EVENT_LABELS = { order_created:"Đặt đơn", order_status:"Cập nhật đơn hàng", payment_paid:"Thanh toán thành công", payment_failed:"Thanh toán chưa thành công", payment_review:"Thanh toán cần đối soát", payment_expired:"Hết hạn thanh toán", expiry_review:"Chờ đối soát thanh toán", shipment_created:"Đã tạo vận đơn", shipping_status:"Cập nhật vận chuyển" };

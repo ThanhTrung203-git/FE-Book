@@ -1,4 +1,4 @@
-import { useLanguage } from "./i18n.jsx";
+import { useLanguage } from "../shared/i18n.jsx";
 import { useEffect, useState } from "react";
 import { LogOut, ShieldCheck, UserRound, LoaderCircle } from "lucide-react";
 import GhnAddressFields from "./GhnAddressFields.jsx";

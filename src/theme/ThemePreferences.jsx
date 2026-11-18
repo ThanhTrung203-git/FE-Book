@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { Moon, Sun } from "lucide-react";
-import { LanguageToggle, useLanguage } from "./i18n.jsx";
+import { Languages, Moon, Sun } from "lucide-react";
+import { useLanguage } from "../shared/i18n.jsx";
 import { THEME_KEY, persistThemePreference, readThemePreference, resolveTheme } from "./themePreferences.js";
 
 const ThemeContext=createContext(null);
@@ -33,15 +33,19 @@ export function ThemeProvider({children}){
   }),[theme,preference]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
-export function DisplayPreferences(){
+export function HeaderDisplayControls(){
   const {theme,setTheme}=useContext(ThemeContext);
-  const {t}=useLanguage();
+  const {language,setLanguage,t}=useLanguage();
   const dark=theme==="dark";
   const label=t(dark?"Chuyển sang giao diện sáng":"Chuyển sang giao diện tối");
-  return <aside className="preferences-dock" aria-label={t("Giao diện và ngôn ngữ")}>
-    <button type="button" className="theme-toggle" aria-label={label} title={label} aria-pressed={dark}
+  return <div className="header-display-controls" aria-label={t("Giao diện và ngôn ngữ")}>
+    <button type="button" className="header-display-button" aria-label={label} title={label} aria-pressed={dark}
       onClick={()=>setTheme(dark?"light":"dark")}>{dark?<Sun size={18}/>:<Moon size={18}/>}</button>
-    <span className="preferences-divider" aria-hidden="true"/>
-    <LanguageToggle/>
-  </aside>;
+    <button type="button" className="header-display-button language-icon-button"
+      aria-label={t("Ngôn ngữ") + ": " + (language === "vi" ? "English" : "Tiếng Việt")}
+      title={t("Ngôn ngữ") + ": " + (language === "vi" ? "English" : "Tiếng Việt")}
+      onClick={()=>setLanguage(language === "vi" ? "en" : "vi")}>
+      <Languages size={17}/><span>{language.toUpperCase()}</span>
+    </button>
+  </div>;
 }

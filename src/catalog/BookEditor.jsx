@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, LoaderCircle, X } from "lucide-react";
-import { api } from "./api.js";
-import { useLanguage } from "./i18n.jsx";
+import { api } from "../shared/api.js";
+import { useLanguage } from "../shared/i18n.jsx";
 import EntitySelect from "./EntitySelect.jsx";
 import CategorySelect from "./CategorySelect.jsx";
 import CatalogCreateForm from "./CatalogCreateForm.jsx";

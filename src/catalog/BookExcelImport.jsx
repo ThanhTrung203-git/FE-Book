@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Upload, Download, FileSpreadsheet, X, LoaderCircle, CheckCircle2 } from "lucide-react";
-import { api } from "./api.js";
-import { useLanguage } from "./i18n.jsx";
+import { api } from "../shared/api.js";
+import { useLanguage } from "../shared/i18n.jsx";
 import "./bookImport.css";
 
 const KIND_LABEL={category:"Thể loại",author:"Tác giả",publisher:"Nhà xuất bản"};

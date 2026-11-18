@@ -1,9 +1,9 @@
-import { BulkPanel, BulkCheckbox, useBulkSelection } from './BulkActions.jsx';
+import { BulkPanel, BulkCheckbox, useBulkSelection } from '../shared/BulkActions.jsx';
 import { useCallback, useEffect, useState } from 'react';
 import { LoaderCircle, RefreshCw, Save, TicketPercent, X } from 'lucide-react';
-import { api } from './api.js';
-import { useLanguage } from './i18n.jsx';
-import './promotions.css';
+import { api } from '../shared/api.js';
+import { useLanguage } from '../shared/i18n.jsx';
+import '../styles/promotions.css';
 
 const localInput = (value) => {
   if (!value) return '';

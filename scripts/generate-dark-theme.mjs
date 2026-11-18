@@ -1,12 +1,22 @@
 import { readFile, readdir, writeFile } from "node:fs/promises";
+import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
 import { darkDeclaration } from "./theme-colors.mjs";
 
 const directory=new URL("../src/",import.meta.url);
-const excluded=new Set(["theme.css","darkPalette.css"]);
-const all=(await readdir(directory)).filter(name=>name.endsWith(".css")&&!excluded.has(name));
-const sources=[...new Set(["styles.css","ui.css","catalog.css",...all.sort()])];
+const root=fileURLToPath(directory);
+const excluded=new Set(["theme/theme.css","theme/darkPalette.css"]);
+async function listCss(folder=root){
+  const entries=await readdir(folder,{withFileTypes:true});
+  return (await Promise.all(entries.map(async entry=>{
+    const full=join(folder,entry.name);
+    if(entry.isDirectory())return listCss(full);
+    return entry.isFile()&&entry.name.endsWith(".css")?[relative(root,full).split(sep).join("/")]:[];
+  }))).flat();
+}
+const all=(await listCss()).filter(name=>!excluded.has(name));
+const sources=[...new Set(["styles/styles.css","styles/ui.css","catalog/catalog.css",...all.sort()])];
 const prefix='html[data-theme="dark"]';
 function scope(selector){
   if(selector.startsWith(":root"))return selector.replace(/^:root/,prefix);
@@ -37,5 +47,5 @@ for(const source of sources){
   output.append(postcss.comment({text:source}));
   for(const node of root.nodes){const changed=transform(node);if(changed)output.append(changed);}
 }
-await writeFile(new URL("darkPalette.css",directory),output.toString()+"\n","utf8");
+await writeFile(new URL("theme/darkPalette.css",directory),output.toString()+"\n","utf8");
 console.log("Generated dark palette for "+sources.length+" stylesheets.");

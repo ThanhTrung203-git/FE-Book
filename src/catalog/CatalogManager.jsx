@@ -1,4 +1,4 @@
-import { BulkPanel, BulkCheckbox, BulkCreateNames, useBulkSelection } from "./BulkActions.jsx";
+import { BulkPanel, BulkCheckbox, BulkCreateNames, useBulkSelection } from "../shared/BulkActions.jsx";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -10,8 +10,8 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { api } from "./api.js";
-import { useLanguage } from "./i18n.jsx";
+import { api } from "../shared/api.js";
+import { useLanguage } from "../shared/i18n.jsx";
 import { catalogEntities } from "./catalogEntities.js";
 import CatalogCreateForm from "./CatalogCreateForm.jsx";
 

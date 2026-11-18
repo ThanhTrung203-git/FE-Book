@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BarChart3, BookOpen, Boxes, CircleDollarSign, ShoppingBag, Truck, TrendingUp, RefreshCw, LoaderCircle, Menu, ArrowUpRight } from "lucide-react";
-import { api } from "./api.js";
-import { useLanguage } from "./i18n.jsx";
+import { api } from "../shared/api.js";
+import { useLanguage } from "../shared/i18n.jsx";
 import "./dashboard.css";
 
 const PERIODS = { day: "Ngày", week: "Tuần", month: "Tháng", quarter: "Quý", year: "Năm" };

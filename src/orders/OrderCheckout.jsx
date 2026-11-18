@@ -1,0 +1,258 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { LoaderCircle, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
+import { api } from "../shared/api.js";
+import { useLanguage } from "../shared/i18n.jsx";
+import GhnAddressFields from "../customer/GhnAddressFields.jsx";
+
+
+function promotionErrorText(error, t, money) {
+  if (!error) return '';
+  if (error.code === 'MINIMUM_NOT_MET') return t('Đơn hàng chưa đạt mức tối thiểu, cần thêm {amount}.', { amount: money(error.missing_amount) });
+  const labels = {
+    EXPIRED: 'Mã khuyến mãi đã hết hạn.',
+    NOT_STARTED: 'Mã khuyến mãi chưa đến thời gian sử dụng.',
+    INACTIVE: 'Mã khuyến mãi đã bị tắt.',
+    USAGE_LIMIT_REACHED: 'Mã khuyến mãi đã hết lượt.',
+    CUSTOMER_LIMIT_REACHED: 'Bạn đã dùng hết lượt cho mã này.',
+    NO_APPLICABLE_ITEMS: 'Sách trong giỏ không thuộc phạm vi mã này.',
+    PROMOTION_NOT_FOUND: 'Không tìm thấy mã khuyến mãi.',
+    FLASH_SALE_SOLD_OUT: 'Ưu đãi có giới hạn vừa hết lượt. Hãy tính lại giỏ hàng.',
+    BOOK_UNAVAILABLE: 'Một cuốn sách trong giỏ không còn được bán.',
+    ORDER_TOTAL_TOO_LARGE: 'Tổng tiền đơn hàng vượt giới hạn xử lý.',
+  };
+  if (error.code?.startsWith('BOOK_STOCK_INSUFFICIENT')) return t('Một cuốn sách không còn đủ tồn kho. Hãy kiểm tra lại giỏ hàng.');
+  return labels[error.code] ? t(labels[error.code]) : t(error.code || 'Mã khuyến mãi không hợp lệ.');
+}
+
+function promotionReasonText(promotion, t, money) {
+  if (promotion.reason === 'MINIMUM_NOT_MET') {
+    return t('Mua thêm {amount} để áp dụng.', { amount: money(promotion.missing_amount) });
+  }
+  return promotionErrorText({ code: promotion.reason }, t, money) || t('Mã hiện chưa áp dụng được.');
+}
+
+function promotionName(name, t) {
+  const orderDiscount = /^Khuyến mãi\s+(.+)\s+giá trị đơn hàng$/i.exec(name || "");
+  if (orderDiscount) return t("Khuyến mãi {amount} giá trị đơn hàng", { amount: orderDiscount[1] });
+  return t(name);
+}
+
+export function CartPanel({ cart, setCart, onClose, onCheckout }) {
+  const { t, money } = useLanguage();
+  const [availability, setAvailability] = useState({});
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
+  const total = cart.reduce((sum, item) => sum + Number(item.unit_price ?? item.price) * item.quantity, 0);
+  const change = (id, amount) => setCart((current) => current
+    .map((item) => item.id === id ? { ...item, quantity: Math.max(1, item.quantity + amount) } : item));
+  useEffect(() => {
+    let active = true;
+    if (!cart.length) {
+      setAvailability({});
+      setCheckingAvailability(false);
+      return () => { active = false; };
+    }
+    setCheckingAvailability(true);
+    Promise.all(cart.map(async (item) => {
+      try {
+        const result = await api(`/books/${item.id}`);
+        const current = result.data;
+        const stock = Number(current?.stock_quantity || 0);
+        if (!current || !current.is_active) return [item.id, t("Sách đã được ẩn khỏi cửa hàng.")];
+        if (stock < 1) return [item.id, t("Sách hiện đã hết hàng.")];
+        if (stock < item.quantity) return [item.id, t("Chỉ còn {quantity} cuốn; hãy giảm số lượng trong giỏ.", { quantity: stock })];
+        return [item.id, ""];
+      } catch (error) {
+        return [item.id, error.status === 404 ? t("Sách đã được ẩn khỏi cửa hàng.") : t("Không kiểm tra được tình trạng sách. Hãy thử lại.")];
+      }
+    })).then((entries) => { if (active) setAvailability(Object.fromEntries(entries)); })
+      .finally(() => { if (active) setCheckingAvailability(false); });
+    return () => { active = false; };
+  }, [cart, t]);
+  const unavailable = cart.some((item) => Boolean(availability[item.id]));
+  return <div className="order-overlay" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="cart-panel" role="dialog" aria-modal="true" aria-labelledby="cart-title">
+      <header><div><span className="store-kicker">{t("TỦ SÁCH NHÀ MỘC")}</span><h2 id="cart-title">{t("Giỏ hàng")}</h2></div><button className="icon" onClick={onClose} aria-label={t("Đóng")}><X /></button></header>
+      {cart.length === 0 ? <div className="order-empty"><ShoppingBag /><b>{t("Giỏ hàng đang trống")}</b><span>{t("Chọn một cuốn sách bạn yêu thích nhé.")}</span></div>
+        : <><div className="cart-items">{cart.map((item) => <article className="cart-item" key={item.id}>
+          {item.cover_url ? <img src={item.cover_url} alt="" /> : <div className="cart-no-cover"><ShoppingBag /></div>}
+          <div className="cart-item-copy"><b>{item.title}</b><small>{Number(item.original_unit_price ?? item.price) > Number(item.unit_price ?? item.price) ? <><del>{money(item.original_unit_price ?? item.price)}</del> <strong>{money(item.unit_price)}</strong></> : money(item.unit_price ?? item.price)}</small>{checkingAvailability ? <small className="cart-checking">{t("Đang kiểm tra số lượng…")}</small> : availability[item.id] ? <small className="cart-unavailable">{availability[item.id]}</small> : null}<div className="cart-quantity"><button onClick={() => change(item.id, -1)} aria-label={t("Giảm số lượng")}><Minus size={13} /></button><span>{item.quantity}</span><button onClick={() => change(item.id, 1)} aria-label={t("Tăng số lượng")}><Plus size={13} /></button><button className="cart-remove" onClick={() => setCart((current) => current.filter((book) => book.id !== item.id))} aria-label={t("Xóa sách")}><Trash2 size={14} /></button></div></div>
+        </article>)}</div>{unavailable && <p className="order-message order-error">{t("Một số sách đã bị ẩn hoặc không đủ số lượng. Hãy xóa sách đó khỏi giỏ trước khi đặt hàng.")}</p>}<footer className="cart-total"><span>{t("Tạm tính")}</span><b>{money(total)}</b><button className="primary wide" disabled={checkingAvailability || unavailable} onClick={onCheckout}>{checkingAvailability ? t("Đang kiểm tra sách…") : unavailable ? t("Cập nhật giỏ hàng để tiếp tục") : t("Tiếp tục đặt hàng　→")}</button></footer></>}
+    </section>
+  </div>;
+}
+
+export function CheckoutModal({ cart, token, user, onClose, onComplete }) {
+  const { t, money, dateTime } = useLanguage();
+  const [form, setForm] = useState({
+    recipient_name: user?.full_name || "", recipient_phone: user?.phone || "", address_line: "",
+    to_province_id: null, to_province_name: "", to_ward_code: "", to_ward_name: "",
+    to_district_name: "", is_new_to_address: true, payment_method: "cod",
+  });
+  const [alternateAddress, setAlternateAddress] = useState(false);
+  const alternateAddressRef = useRef(false);
+  const [profileAddress, setProfileAddress] = useState({
+    recipient_name: user?.full_name || "", recipient_phone: user?.phone || "",
+    address_line: "", to_province_id: null, to_province_name: "", to_ward_code: "",
+    to_ward_name: "", to_district_name: "", is_new_to_address: true,
+  });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [orderCode, setOrderCode] = useState("");
+  const [quote, setQuote] = useState(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState("");
+  const set = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const activeAddress = alternateAddress ? form : profileAddress;
+  const setActiveAddress = (updater) => {
+    if (alternateAddress) setForm(updater);
+    else setProfileAddress(updater);
+  };
+  const toggleAlternateAddress = (enabled) => {
+    alternateAddressRef.current = enabled;
+    setAlternateAddress(enabled);
+    if (enabled) setForm((current) => ({
+      ...current,
+      recipient_name: "",
+      recipient_phone: "",
+      address_line: "",
+      to_province_id: null, to_province_name: "", to_ward_code: "",
+      to_ward_name: "", to_district_name: "", is_new_to_address: true,
+    }));
+  };
+  const total = useMemo(() => cart.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0), [cart]);
+  const itemKey = useMemo(() => JSON.stringify(cart.map((item) => ({ book_id: item.id, quantity: item.quantity }))), [cart]);
+
+  useEffect(() => {
+    let active = true;
+    api("/auth/me/profile", { token })
+      .then((result) => {
+        if (!active || !result.data?.profile) return;
+        const profile = result.data.profile;
+        const savedAddress = {
+          recipient_name: profile.full_name || user?.full_name || "",
+          recipient_phone: profile.phone || "",
+          address_line: profile.shipping_address || "",
+          to_province_id: profile.shipping_province_id ?? null,
+          to_province_name: profile.shipping_province_name || "",
+          to_ward_code: profile.shipping_ward_code || "",
+          to_ward_name: profile.shipping_ward_name || "",
+          to_district_name: profile.shipping_district_name || "",
+          is_new_to_address: profile.shipping_is_new_to_address == null
+            ? true : Boolean(profile.shipping_is_new_to_address),
+        };
+        setProfileAddress(savedAddress);
+        if (!alternateAddressRef.current) {
+          setForm((current) => ({ ...current, ...savedAddress }));
+        }
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [token, user?.full_name]);
+
+  useEffect(() => {
+    let active = true;
+    if (!cart.length) { setQuote(null); return () => { active = false; }; }
+    setQuoteLoading(true);
+    api('/orders/quote', { method: 'POST', token, body: JSON.stringify({ items: JSON.parse(itemKey), order_promotion_code: orderCode.trim() || null }) })
+      .then((result) => {
+        if (!active) return;
+        setQuote(result.data);
+        setQuoteError(result.data?.promotion_error ? promotionErrorText(result.data.promotion_error, t, money) : '');
+      })
+      .catch((requestError) => { if (active) { setQuote(null); setQuoteError(requestError.message); } })
+      .finally(() => { if (active) setQuoteLoading(false); });
+    return () => { active = false; };
+  }, [itemKey, orderCode, token, cart.length]);
+
+  async function submit(event) {
+    event.preventDefault(); setBusy(true); setError(""); setSuccess("");
+    const shipping = activeAddress;
+    if (![shipping.recipient_name, shipping.recipient_phone].every((value) => String(value || "").trim())) {
+      setError(t(alternateAddress ? "Vui lòng nhập người nhận và số điện thoại." : "Vui lòng cập nhật tên và số điện thoại trong hồ sơ trước khi đặt hàng."));
+      setBusy(false);
+      return;
+    }
+    if (![shipping.address_line, shipping.to_province_name, shipping.to_ward_name]
+      .every((value) => String(value || "").trim())
+      || (!shipping.is_new_to_address && !String(shipping.to_district_name || "").trim())) {
+      setError(t(alternateAddress ? "Vui lòng nhập đầy đủ thông tin và chọn địa chỉ nhận hàng mới." : "Thông tin giao hàng trong hồ sơ chưa đầy đủ. Hãy chọn Địa chỉ nhận hàng khác để nhập thông tin."));
+      setBusy(false);
+      return;
+    }
+    const addressParts = [shipping.address_line.trim(), shipping.to_ward_name, !shipping.is_new_to_address && shipping.to_district_name, shipping.to_province_name].filter(Boolean);
+    try {
+      const result = await api("/orders", {
+        method: "POST", token,
+        body: JSON.stringify({
+          recipient_name: shipping.recipient_name.trim(), recipient_phone: shipping.recipient_phone.trim(),
+          shipping_address: addressParts.join(", "), to_ward_name: shipping.to_ward_name,
+          to_province_name: shipping.to_province_name,
+          ...(shipping.is_new_to_address ? {} : { to_district_name: shipping.to_district_name.trim() }),
+          is_new_to_address: shipping.is_new_to_address,
+          payment_method: form.payment_method,
+          items: cart.map((item) => ({ book_id: item.id, quantity: item.quantity })),
+          order_promotion_code: orderCode.trim() || null,
+        }),
+      });
+      if (form.payment_method === "vnpay") {
+        onComplete(result.data, result.email_sent);
+        if (result.payment?.url) window.location.assign(result.payment.url);
+        return;
+      }
+      const emailMessage = result.email_sent
+        ? t("Thông tin đơn hàng đã gửi đến email của bạn.")
+        : t("Không gửi được email xác nhận; bạn có thể xem đơn hàng trong tài khoản.");
+      setSuccess(result.data?.shipping_error
+        ? `${t("Đã tạo đơn")}${result.data.order_code}; ${t("chưa tạo được vận đơn:")} ${t(result.data.shipping_error)} ${emailMessage}`
+        : `${t("Đặt hàng thành công, đang chờ cửa hàng xác nhận. Mã đơn: ")}${result.data?.order_code || ""} ${emailMessage}`);
+      onComplete(result.data, result.email_sent);
+    } catch (requestError) { setError(promotionErrorText({ code: requestError.message }, t, money) || t(requestError.message)); }
+    finally { setBusy(false); }
+  }
+
+  return <div className="order-overlay checkout-overlay" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="checkout-panel" role="dialog" aria-modal="true" aria-labelledby="checkout-title">
+      <header><div><span className="store-kicker">{t("GIAO HÀNG TẬN NƠI")}</span><h2 id="checkout-title">{t("Thông tin đặt hàng")}</h2></div><button className="icon" onClick={onClose} aria-label={t("Đóng")}><X /></button></header>
+      <div className="checkout-layout"><form className="checkout-form" onSubmit={submit}>
+        <div className="checkout-address-heading checkout-full"><b>{t(alternateAddress ? "Thông tin nhận hàng" : "Thông tin hiện tại")}</b></div>
+        <label>{t("Người nhận")}<input required disabled={!alternateAddress} value={activeAddress.recipient_name} onChange={(event) => setActiveAddress((current) => ({ ...current, recipient_name: event.target.value }))} /></label>
+        <label>{t("Số điện thoại")}<input required disabled={!alternateAddress} type="tel" value={activeAddress.recipient_phone} onChange={(event) => setActiveAddress((current) => ({ ...current, recipient_phone: event.target.value }))} /></label>
+        <label className="checkout-full">{t("Địa chỉ cụ thể")}<input required disabled={!alternateAddress} maxLength="1024" placeholder={t("Số nhà, tên đường")} value={activeAddress.address_line} onChange={(event) => setActiveAddress((current) => ({ ...current, address_line: event.target.value }))} /></label>
+        <GhnAddressFields
+          key={alternateAddress ? "alternate-delivery-address" : "saved-delivery-address"}
+          value={activeAddress}
+          setValue={setActiveAddress}
+          token={token}
+          disabled={!alternateAddress && activeAddress.is_new_to_address}
+          allowLegacyToggle
+        />
+        <label className="checkout-old-address">
+          <input type="checkbox" checked={alternateAddress} onChange={(event) => toggleAlternateAddress(event.target.checked)} />
+          {t("Địa chỉ nhận hàng khác")}
+        </label>
+        <fieldset className="checkout-payment checkout-full" disabled={busy}>
+          <legend>{t("Phương thức thanh toán")}</legend>
+          <label className={form.payment_method === "cod" ? "payment-option is-selected" : "payment-option"}>
+            <input type="radio" name="payment_method" value="cod" checked={form.payment_method === "cod"} onChange={() => set("payment_method", "cod")} />
+            <span><b>{t("Thanh toán khi nhận hàng (COD)")}</b><small>{t("Thanh toán tiền sách sau giảm giá và phí giao hàng khi nhận hàng.")}</small></span>
+          </label>
+          <label className={form.payment_method === "vnpay" ? "payment-option is-selected" : "payment-option"}>
+            <input type="radio" name="payment_method" value="vnpay" checked={form.payment_method === "vnpay"} onChange={() => set("payment_method", "vnpay")} />
+            <span><b>VNPAY</b><small>{t("Thanh toán trực tuyến cả tiền sách và phí giao hàng qua VNPAY.")}</small></span>
+          </label>
+        </fieldset>
+        <section className="checkout-promotions checkout-full">
+          <b>{t('Mã giảm giá đơn hàng')}</b>
+          <div className="checkout-promo-input"><input aria-label={t('Nhập mã giảm giá')} value={orderCode} onChange={(event) => setOrderCode(event.target.value.toUpperCase())} placeholder={t('Nhập mã hoặc chọn gợi ý')} /><button type="button" className="secondary" onClick={() => setOrderCode('')} disabled={!orderCode}>{t('Bỏ mã')}</button></div>
+          {quoteError && <p className="order-message order-error">{quoteError}</p>}
+          {quoteLoading && <small>{t('Đang tính lại ưu đãi…')}</small>}
+          {quote?.order_promotions?.length > 0 && <div className="checkout-promo-list">{quote.order_promotions.map((promotion) => <article key={promotion.id} className={!promotion.eligible ? 'is-ineligible' : ''}><div><b>{promotionName(promotion.name, t)} · {promotion.code}</b><small>{promotion.discount_type === 'percent' ? `${promotion.discount_value}%` : money(promotion.discount_value)} · {t('Đơn tối thiểu')} {money(promotion.min_order_amount)}</small><small>{promotion.eligible ? t('Hạn dùng {date}', { date: dateTime(promotion.end_at) }) : promotionReasonText(promotion, t, money)}</small></div><button type="button" className="secondary" disabled={!promotion.eligible || orderCode.toUpperCase() === promotion.code || quoteLoading} onClick={() => setOrderCode(promotion.code)}>{t(orderCode.toUpperCase() === promotion.code ? 'Đang áp dụng' : 'Áp dụng')}</button></article>)}</div>}
+        </section>
+        {error && <p className="order-message order-error checkout-full">{t(error)}</p>}
+        {success && <p className="order-message checkout-success checkout-full">{success}</p>}
+        <button className="primary checkout-full" disabled={busy || quoteLoading || !cart.length || !quote || Boolean(quote.promotion_error)}>{busy ? <><LoaderCircle className="spin" size={16} /> {t("Đang tạo đơn…")}</> : (form.payment_method === "vnpay" ? t("Tiếp tục đến VNPAY") : `${t("Xác nhận đặt hàng")} · ${money(quote?.total_amount ?? total)}`)}</button>
+      </form><aside className="checkout-summary"><b>{t("Đơn hàng của bạn")}</b>{(quote?.items || cart).map((item) => <div key={item.book_id || item.id}><span>{item.book_title || item.title} {t("×")} {item.quantity}</span><b>{money(item.line_subtotal ?? item.unit_price * item.quantity ?? item.price * item.quantity)}</b></div>)}<hr /><div><span>{t('Giảm trực tiếp')}</span><b>{money(-Number(quote?.direct_discount_amount || 0))}</b></div><div><span>{t('Mã đơn hàng')}</span><b>{money(-Number(quote?.order_discount_amount || 0))}</b></div><div className="checkout-total"><span>{t("Tổng tiền sách")}</span><b>{money(quote?.total_amount ?? total)}</b></div><small>{t(form.payment_method === "vnpay" ? "Phí giao hàng sẽ được xác định trước khi chuyển đến VNPAY. Tổng thanh toán bao gồm phí giao hàng." : "Bạn sẽ thanh toán khi nhận hàng (COD). Phí giao hàng được cập nhật khi tạo vận đơn GHN.")}</small><small>{t("Giá, tồn kho và ưu đãi sẽ được backend xác nhận. Đơn hàng chờ cửa hàng xác nhận thủ công.")}</small></aside></div>
+    </section>
+  </div>;
+}

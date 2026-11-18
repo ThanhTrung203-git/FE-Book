@@ -1,12 +1,12 @@
 import { defaultOrderTimeValue } from "./orderTimeFilter.js";
 import "./adminOrderFilters.css";
-import { BulkPanel, BulkCheckbox, useBulkSelection } from "./BulkActions.jsx";
-import { OrderHistory, PaymentDeadline } from "./CustomerFeatures.jsx";
+import { BulkPanel, BulkCheckbox, useBulkSelection } from "../shared/BulkActions.jsx";
+import { OrderHistory, PaymentDeadline } from "../customer/CustomerFeatures.jsx";
 import { ORDER_STEPS, getOrderStatusMessage, getPaymentNotice } from "./orderPresentation.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, LoaderCircle, PackageCheck, RefreshCw, Truck, X } from "lucide-react";
-import { api } from "./api.js";
-import { useLanguage } from "./i18n.jsx";
+import { api } from "../shared/api.js";
+import { useLanguage } from "../shared/i18n.jsx";
 import StatusDropdown from "./StatusDropdown.jsx";
 import { getOrderDelivery } from "./orderDelivery.js";
 import { getOrderTotal } from "./orderTotals.js";

@@ -1,7 +1,7 @@
-import { CustomerActivityNav, WishlistPage } from "./CustomerFeatures.jsx";
-import Dashboard from "./Dashboard.jsx";
-import BookExcelImport from "./BookExcelImport.jsx";
-import { BulkPanel, BulkCheckbox, useBulkSelection } from "./BulkActions.jsx";
+import { CustomerActivityNav, WishlistPage } from "./customer/CustomerFeatures.jsx";
+import Dashboard from "./admin/Dashboard.jsx";
+import BookExcelImport from "./catalog/BookExcelImport.jsx";
+import { BulkPanel, BulkCheckbox, useBulkSelection } from "./shared/BulkActions.jsx";
 import { useCallback, useEffect, useState } from "react";
 import {
   BookOpen,
@@ -27,17 +27,17 @@ import {
   LayoutDashboard,
   FileSpreadsheet,
 } from "lucide-react";
-import { CustomerProfile, AdminProfileEditor } from "./ProfileForms.jsx";
-import { AuthPage } from "./AuthPage.jsx";
-import CategoryManager from "./CategoryManager.jsx";
-import Storefront from "./Storefront.jsx";
-import { AdminOrders, CustomerOrders } from "./OrderFeatures.jsx";
-import { ACCESS_KEY, REFRESH_KEY, api } from "./api.js";
-import { useLanguage } from "./i18n.jsx";
-import StatusDropdown from "./StatusDropdown.jsx";
-import Editor from "./BookEditor.jsx";
-import CatalogManager from "./CatalogManager.jsx";
-import PromotionManager from "./PromotionManager.jsx";
+import { CustomerProfile, AdminProfileEditor } from "./customer/ProfileForms.jsx";
+import { AuthPage } from "./auth/AuthPage.jsx";
+import CategoryManager from "./catalog/CategoryManager.jsx";
+import Storefront from "./storefront/Storefront.jsx";
+import { AdminOrders, CustomerOrders } from "./orders/OrderFeatures.jsx";
+import { ACCESS_KEY, REFRESH_KEY, api } from "./shared/api.js";
+import { useLanguage } from "./shared/i18n.jsx";
+import StatusDropdown from "./orders/StatusDropdown.jsx";
+import Editor from "./catalog/BookEditor.jsx";
+import CatalogManager from "./catalog/CatalogManager.jsx";
+import PromotionManager from "./admin/PromotionManager.jsx";
 const KEY = ACCESS_KEY;
 function StockEditor({ book, close, addStock, busy }) {
   const { t } = useLanguage();
@@ -311,6 +311,12 @@ export default function App() {
   async function register(data) {
     await api("/auth/register", { method: "POST", body: JSON.stringify(data) });
   }
+  async function resendRegistration(data) {
+    await api("/auth/register/resend", { method: "POST", body: JSON.stringify(data) });
+  }
+  async function verifyRegistration(data) {
+    await api("/auth/register/verify", { method: "POST", body: JSON.stringify(data) });
+  }
   if (checking)
     return (
       <div className="checking">
@@ -323,6 +329,8 @@ export default function App() {
         <AuthPage
           onLogin={login}
           onRegister={register}
+          onResendRegistration={resendRegistration}
+          onVerifyRegistration={verifyRegistration}
           onBack={() => setShowAuth(false)}
         />
         {toast && <div className="toast">{t(toast)}</div>}

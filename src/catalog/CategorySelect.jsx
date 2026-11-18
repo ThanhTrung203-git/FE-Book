@@ -6,8 +6,8 @@ import {
   LoaderCircle,
   Search,
 } from "lucide-react";
-import { api } from "./api.js";
-import { useLanguage } from "./i18n.jsx";
+import { api } from "../shared/api.js";
+import { useLanguage } from "../shared/i18n.jsx";
 
 const unique = (rows) => [
   ...new Map(rows.map((row) => [Number(row.id), row])).values(),
