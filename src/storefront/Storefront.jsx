@@ -1221,7 +1221,7 @@ export default function Storefront({
           token={token}
           user={user}
           onClose={() => setCheckoutOpen(false)}
-          onComplete={(order, emailSent) => {
+          onComplete={(order, emailSent, paymentError) => {
             setCart([]);
             try {
               localStorage.removeItem(cartStorageKey);
@@ -1229,7 +1229,11 @@ export default function Storefront({
               // The in-memory cart is still cleared if browser storage is unavailable.
             }
             setCheckoutOpen(false);
-            setCartNotice({
+            setCartNotice(paymentError ? {
+              key: "Đơn hàng {code} đã tạo nhưng chưa tạo được liên kết thanh toán VNPAY. Vào Đơn hàng của tôi để thử lại.",
+              params: { code: order?.order_code || "" },
+              type: "warning",
+            } : {
               key: emailSent
                 ? "Đặt hàng thành công: {code}. Thông tin đơn hàng đã gửi đến email của bạn."
                 : "Đặt hàng thành công: {code}. Không gửi được email xác nhận; bạn có thể xem đơn hàng trong tài khoản.",

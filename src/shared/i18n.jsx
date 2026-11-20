@@ -271,6 +271,10 @@ const dictionary = {
 
   "Thanh toán trực tuyến cả tiền sách và phí giao hàng qua VNPAY.": "Pay online for books and shipping via VNPAY.",
   "Tiếp tục đến VNPAY": "Continue to VNPAY",
+  "Thử lại thanh toán VNPAY": "Retry VNPAY payment",
+  "Đang tạo liên kết thanh toán…": "Creating payment link…",
+  "Backend chưa trả về liên kết thanh toán VNPAY.": "The backend did not return a VNPAY payment link.",
+  "Đơn hàng đã tạo nhưng chưa có liên kết thanh toán VNPAY. Hãy thử tạo lại liên kết.": "The order was created, but no VNPAY payment link is available. Try creating the link again.",
   "Phí giao hàng sẽ được xác định trước khi chuyển đến VNPAY. Tổng thanh toán bao gồm phí giao hàng.": "Shipping is calculated before redirecting to VNPAY and included in the payment.",
   "Thanh toán chưa thành công": "Payment unsuccessful",
   "Cần xử lý hoàn tiền": "Refund required",
@@ -418,6 +422,7 @@ const dictionary = {
   "Tổng tiền sách": "Books total",
   "Thông tin nhận hàng": "Delivery details",
   "Vui lòng nhập người nhận và số điện thoại.": "Enter the recipient name and phone number.",
+  "Đơn hàng {code} đã tạo nhưng chưa tạo được liên kết thanh toán VNPAY. Vào Đơn hàng của tôi để thử lại.": "Order {code} was created, but we could not create a VNPAY payment link. Go to My orders to try again.",
   "Giá, tồn kho và ưu đãi sẽ được backend xác nhận. Đơn hàng chờ cửa hàng xác nhận thủ công.": "The backend will confirm prices, stock, and discounts. The store will review your order before confirming it.",
   "Mã khuyến mãi đã hết hạn.": "This discount code has expired.",
   "Mã khuyến mãi chưa đến thời gian sử dụng.": "This discount code is not active yet.",

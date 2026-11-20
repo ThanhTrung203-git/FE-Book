@@ -1909,3 +1909,12 @@
 .mp-price-values > span:last-child { text-align: right; }
 .mp-price-values strong { color: var(--theme-text); font-size: 11px; font-weight: 600; }
 .mp-price-hint { display: block; margin-top: 12px; color: var(--theme-muted); font-size: 10px; line-height: 1.6; }
+.mp-search-suggestions{max-height:min(70vh,520px);overflow:auto}
+.mp-search-products li{display:block;border-top:1px solid var(--theme-border)}
+.mp-search .mp-search-product{width:100%;display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:10px;padding:9px 7px;background:transparent;color:var(--theme-text);text-align:left}
+.mp-search-product>img,.mp-search-product-placeholder{width:44px;height:58px;object-fit:cover;border-radius:5px;background:var(--theme-soft)}
+.mp-search-product-placeholder{display:grid;place-items:center;color:var(--theme-accent)}
+.mp-search-product-copy{min-width:0;display:grid;gap:4px}
+.mp-search-product-copy>b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.mp-search-product-copy>small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--theme-muted);font-size:10px}
+.mp-search-product>strong{color:var(--theme-accent);font-size:11px;white-space:nowrap}
