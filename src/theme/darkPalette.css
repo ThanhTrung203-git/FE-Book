@@ -615,6 +615,15 @@ html[data-theme="dark"] .customer-order-progress.progress-cancelled>p {color:#dc
 }
 html[data-theme="dark"] .checkout-alternate-address { border-top: 1px solid #3d3d57
 }
+html[data-theme="dark"] .checkout-summary .checkout-line {color:#bcb1c9
+}
+html[data-theme="dark"] .checkout-summary .checkout-line>img,
+html[data-theme="dark"] .checkout-line-cover {background:#261e38
+}
+html[data-theme="dark"] .checkout-line-cover {color:#ac9aea
+}
+html[data-theme="dark"] .checkout-summary .checkout-line>b {color:#eee6f6
+}
 /* styles/ui.css */
 html[data-theme="dark"] .language-toggle {
   border: 1px solid #453d57;

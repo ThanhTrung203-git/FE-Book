@@ -516,6 +516,13 @@ export default function Storefront({
   function clearSearchFilters() {
     setCategory(''); setPriceRange(''); setInStock(false); setPage(1);
   }
+  function chooseSuggestedCategory(value) {
+    setSearchInput("");
+    setSearch("");
+    setPriceRange("");
+    setInStock(false);
+    chooseCategory(value);
+  }
   const closeDetails = useCallback(() => {
     detailRequest.current?.abort();
     setSelectedBook(null);
@@ -611,7 +618,8 @@ export default function Storefront({
           </a>
           <StoreSearch key={user?.id || 'guest'} storageKey={'book-search-history-' + (user?.id || 'guest')}
             value={searchInput} submittedSearch={search} onChange={setSearchInput} onSearch={submitSearch}
-            onClear={() => { setSearchInput(''); setSearch(''); setPage(1); }} />
+            onClear={() => { setSearchInput(''); setSearch(''); setPage(1); }}
+            featured={featured} onBook={showDetails} onCategory={chooseSuggestedCategory} />
           <div className="store-header-actions mp-header-actions">
 
             {token && user?.role === "customer" ? (

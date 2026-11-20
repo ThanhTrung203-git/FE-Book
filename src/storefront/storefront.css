@@ -1909,7 +1909,40 @@
 .mp-price-values > span:last-child { text-align: right; }
 .mp-price-values strong { color: var(--theme-text); font-size: 11px; font-weight: 600; }
 .mp-price-hint { display: block; margin-top: 12px; color: var(--theme-muted); font-size: 10px; line-height: 1.6; }
-.mp-search-suggestions{max-height:min(70vh,520px);overflow:auto}
+.mp-search-dropdown {
+  max-height: min(60vh, 460px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.mp-search-dropdown > [role="group"] + [role="group"] {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--theme-border);
+}
+.mp-search-loading {
+  color: var(--theme-muted);
+  font-size: 12px;
+}
+.mp-search-history .mp-search-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-inline: 6px;
+}
+.mp-search-categories li {
+  max-width: 100%;
+}
+.mp-search .mp-search-categories button {
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--theme-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--theme-text);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
 .mp-search-products li{display:block;border-top:1px solid var(--theme-border)}
 .mp-search .mp-search-product{width:100%;display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:10px;padding:9px 7px;background:transparent;color:var(--theme-text);text-align:left}
 .mp-search-product>img,.mp-search-product-placeholder{width:44px;height:58px;object-fit:cover;border-radius:5px;background:var(--theme-soft)}
